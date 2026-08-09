@@ -20,17 +20,9 @@ const backpack: Product = {
 
     badge: "Trending",
 
-    stock: 1500,
-    features: [
-        "Intelligent Organization and Capacity",
-        "Ergonomic Carrying Comfort",
-        "Durable Weather-Resistant Build",
-        "Modern Versatile Aesthetic",
-    ],
-
-
     isFeatured: true,
-    
+    stock: 0,
+    features: []
 };
 
 export default backpack;

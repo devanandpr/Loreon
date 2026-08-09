@@ -20,17 +20,9 @@ const console: Product = {
 
     badge: "Hot",
 
-    stock: 259,
-
-    features: [
-        "Ultra-High-Speed SSD",
-        "Ray Tracing Technology",
-        "4K Gaming Experience",
-        "3D Audio Support",
-    ],  
-
     isFeatured: true,
-    
+    stock: 0,
+    features: []
 };
 
 export default console;

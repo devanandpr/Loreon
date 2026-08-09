@@ -20,16 +20,9 @@ const shoes: Product = {
 
     badge: "Trending",
 
-     stock: 459,
-    features: [
-        "Lightweight and Breathable Mesh Upper",
-        "Responsive Cushioning for Long-Lasting Comfort",
-        "Durable Rubber Outsole for Traction and Stability",
-        "Sleek Design for Versatile Style",    
-    ],
-
     isFeatured: true,
-   
+    stock: 0,
+    features: []
 };
 
 export default shoes;

@@ -20,18 +20,9 @@ const camera: Product = {
 
     badge: "Popular",
 
-    stock: 99,
-
-    features:[
-        "AI-Powered Real-Time Recognition Autofocus",
-        "4K HDR Video Recording with S-Log3 and HLG",
-        "High-Speed Continuous Shooting up to 10 fps",
-        "Dual Card Slots for Extended Storage",
-        "Weather-Sealed Body for Durability",
-    ],
-
     isFeatured: true,
-
+    stock: 0,
+    features: []
 };
 
 export default camera;

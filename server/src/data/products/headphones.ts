@@ -25,15 +25,15 @@ const headphones: Product = {
 
   features: [
     "Active Noise Cancellation",
-    "Premium Sound Quality",
-    "30-Hour Battery Life",
-    "Wireless Connectivity",
+    "40 Hour Battery",
+    "Bluetooth 5.3",
+    "Fast Charging",
+    "Premium Leather Ear Cushions",
   ],
 
-  colors: [
-    "Black",
-    "White",
-  ],
+  colors: ["Black", "Silver", "Blue"],
+
+  sizes: [],
 
   isFeatured: true,
 };
