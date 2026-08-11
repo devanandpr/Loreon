@@ -1,28 +1,125 @@
-import { notFound } from "next/navigation";
+"use client";
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
 import Navbar from "@/components/Navbar/Navbar";
 import Footer from "@/components/Footer/Footer";
-import { PRODUCTS } from "@/data/products";
+import CartDrawer from "@/components/cartdrawer/CartDrawer";
+import { getProduct, getProducts } from "@/lib/api";
+import { useCartStore } from "@/store/useCartStore";
+import type { Product } from "@/types/product";
+
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default function ProductPage({ params }: PageProps) {
-  const product = PRODUCTS.find((p) => p.id === params.id);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  if (!product) {
-    notFound();
+  const addToCart = useCartStore((state) => state.addToCart);
+
+  useEffect(() => {
+    async function fetchProduct() {
+      try {
+        setLoading(true);
+
+        const { id } = await params;
+
+        // Get the selected product
+        const productData = await getProduct(id);
+
+        if (!productData?.product) {
+          throw new Error("Product not found");
+        }
+
+        const selectedProduct: Product = productData.product;
+
+        setProduct(selectedProduct);
+
+        // Get all products for related products
+        const productsData = await getProducts();
+
+        const related = productsData.products
+          .filter(
+            (item: Product) =>
+              item.category === selectedProduct.category &&
+              item.id !== selectedProduct.id
+          )
+          .slice(0, 4);
+
+        setRelatedProducts(related);
+      } catch (error) {
+        console.error("Failed to fetch product:", error);
+        setError("Product could not be found.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProduct();
+  }, [params]);
+
+  const handleAddToCart = () => {
+    if (!product || product.stock <= 0) {
+      return;
+    }
+
+    addToCart(product);
+  };
+
+  /* Loading */
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-black text-white">
+        <Navbar />
+
+        <div className="min-h-[70vh] flex items-center justify-center">
+          <p className="text-zinc-400">
+            Loading product...
+          </p>
+        </div>
+
+        <Footer />
+      </main>
+    );
   }
 
-  const relatedProducts = PRODUCTS.filter(
-    (item) =>
-      item.category === product.category &&
-      item.id !== product.id
-  ).slice(0, 4);
+  /* Error / Product not found */
+
+  if (error || !product) {
+    return (
+      <main className="min-h-screen bg-black text-white">
+        <Navbar />
+
+        <div className="min-h-[70vh] flex flex-col items-center justify-center px-6 text-center">
+          <h1 className="text-3xl font-bold">
+            Product Not Found
+          </h1>
+
+          <p className="text-zinc-500 mt-3">
+            {error || "This product does not exist."}
+          </p>
+
+          <Link
+            href="/products"
+            className="mt-6 bg-white text-black px-6 py-3 rounded-xl font-semibold hover:bg-zinc-200 transition"
+          >
+            Back to Products
+          </Link>
+        </div>
+
+        <Footer />
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-black text-white">
@@ -33,29 +130,36 @@ export default function ProductPage({ params }: PageProps) {
         {/* Breadcrumb */}
 
         <div className="text-sm text-zinc-500 mb-8">
-          <Link href="/" className="hover:text-white">
+          <Link
+            href="/"
+            className="hover:text-white"
+          >
             Home
           </Link>
 
           <span className="mx-2">/</span>
 
-          <Link href="/products" className="hover:text-white">
+          <Link
+            href="/products"
+            className="hover:text-white"
+          >
             Products
           </Link>
 
           <span className="mx-2">/</span>
 
-          <span className="text-white">{product.name}</span>
+          <span className="text-white">
+            {product.name}
+          </span>
         </div>
 
         {/* Product */}
 
         <div className="grid lg:grid-cols-2 gap-20">
 
-          {/* Left */}
+          {/* Left - Image */}
 
           <div>
-
             <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-10">
 
               <Image
@@ -67,28 +171,33 @@ export default function ProductPage({ params }: PageProps) {
               />
 
             </div>
-
           </div>
 
-          {/* Right */}
+          {/* Right - Details */}
 
           <div>
 
-            {product.badge && (
+            {/* Badge */}
 
+            {product.badge && (
               <span className="inline-block bg-white text-black px-4 py-1 rounded-full text-sm font-semibold mb-5">
                 {product.badge}
               </span>
-
             )}
+
+            {/* Brand */}
 
             <p className="uppercase tracking-[0.3em] text-zinc-500 text-sm">
               {product.brand}
             </p>
 
+            {/* Product Name */}
+
             <h1 className="text-5xl font-bold mt-4">
               {product.name}
             </h1>
+
+            {/* Rating */}
 
             <div className="flex items-center gap-4 mt-6">
 
@@ -102,6 +211,8 @@ export default function ProductPage({ params }: PageProps) {
 
             </div>
 
+            {/* Price */}
+
             <div className="mt-8 flex items-center gap-4">
 
               <span className="text-5xl font-bold">
@@ -109,14 +220,14 @@ export default function ProductPage({ params }: PageProps) {
               </span>
 
               {product.originalPrice && (
-
                 <span className="line-through text-zinc-500 text-xl">
                   ${product.originalPrice}
                 </span>
-
               )}
 
             </div>
+
+            {/* Description */}
 
             <p className="mt-8 text-zinc-400 leading-8">
               {product.description}
@@ -130,7 +241,9 @@ export default function ProductPage({ params }: PageProps) {
                 className={`font-semibold ${
                   product.stock > 10
                     ? "text-green-500"
-                    : "text-orange-400"
+                    : product.stock > 0
+                    ? "text-orange-400"
+                    : "text-red-500"
                 }`}
               >
                 {product.stock > 0
@@ -148,90 +261,102 @@ export default function ProductPage({ params }: PageProps) {
                 Features
               </h3>
 
-              <ul className="space-y-3">
+              {product.features.length > 0 ? (
+                <ul className="space-y-3">
 
-                {product.features.map((feature) => (
+                  {product.features.map((feature) => (
+                    <li
+                      key={feature}
+                      className="text-zinc-400 flex gap-3"
+                    >
+                      <span>✔</span>
+                      <span>{feature}</span>
+                    </li>
+                  ))}
 
-                  <li
-                    key={feature}
-                    className="text-zinc-400 flex gap-3"
-                  >
-                    ✔ {feature}
-                  </li>
-
-                ))}
-
-              </ul>
+                </ul>
+              ) : (
+                <p className="text-zinc-500">
+                  No features listed.
+                </p>
+              )}
 
             </div>
 
             {/* Colors */}
 
-            {product.colors && (
+            {product.colors &&
+              product.colors.length > 0 && (
+                <div className="mt-10">
 
-              <div className="mt-10">
+                  <h3 className="font-semibold mb-3">
+                    Colors
+                  </h3>
 
-                <h3 className="font-semibold mb-3">
-                  Colors
-                </h3>
+                  <div className="flex gap-3 flex-wrap">
 
-                <div className="flex gap-3">
+                    {product.colors.map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        className="border border-zinc-700 rounded-full px-5 py-2 hover:border-white transition"
+                      >
+                        {color}
+                      </button>
+                    ))}
 
-                  {product.colors.map((color) => (
-
-                    <div
-                      key={color}
-                      className="border border-zinc-700 rounded-full px-5 py-2 hover:border-white cursor-pointer transition"
-                    >
-                      {color}
-                    </div>
-
-                  ))}
+                  </div>
 
                 </div>
-
-              </div>
-
-            )}
+              )}
 
             {/* Sizes */}
 
-            {product.sizes && (
+            {product.sizes &&
+              product.sizes.length > 0 && (
+                <div className="mt-10">
 
-              <div className="mt-10">
+                  <h3 className="font-semibold mb-3">
+                    Sizes
+                  </h3>
 
-                <h3 className="font-semibold mb-3">
-                  Sizes
-                </h3>
+                  <div className="flex gap-3 flex-wrap">
 
-                <div className="flex gap-3">
+                    {product.sizes.map((size) => (
+                      <button
+                        key={size}
+                        type="button"
+                        className="border border-zinc-700 rounded-xl px-5 py-2 hover:border-white transition"
+                      >
+                        {size}
+                      </button>
+                    ))}
 
-                  {product.sizes.map((size) => (
-
-                    <button
-                      key={size}
-                      className="border border-zinc-700 rounded-xl px-5 py-2 hover:border-white transition"
-                    >
-                      {size}
-                    </button>
-
-                  ))}
+                  </div>
 
                 </div>
-
-              </div>
-
-            )}
+              )}
 
             {/* Buttons */}
 
             <div className="flex gap-4 mt-12">
 
-              <button className="flex-1 bg-white text-black py-4 rounded-xl font-semibold hover:bg-zinc-200 transition">
-                Add To Cart
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                disabled={product.stock <= 0}
+                className="flex-1 bg-white text-black py-4 rounded-xl font-semibold hover:bg-zinc-200 transition disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {product.stock > 0
+                  ? "Add To Cart"
+                  : "Out Of Stock"}
               </button>
 
-              <button className="flex-1 border border-zinc-700 rounded-xl hover:border-white transition">
+              <button
+                type="button"
+                disabled={product.stock <= 0}
+                className="flex-1 border border-zinc-700 rounded-xl hover:border-white transition disabled:opacity-40 disabled:cursor-not-allowed"
+              >
                 Buy Now
               </button>
 
@@ -241,10 +366,9 @@ export default function ProductPage({ params }: PageProps) {
 
         </div>
 
-        {/* Related */}
+        {/* Related Products */}
 
         {relatedProducts.length > 0 && (
-
           <section className="mt-24">
 
             <h2 className="text-3xl font-bold mb-8">
@@ -254,7 +378,6 @@ export default function ProductPage({ params }: PageProps) {
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
 
               {relatedProducts.map((item) => (
-
                 <Link
                   href={`/products/${item.id}`}
                   key={item.id}
@@ -278,16 +401,16 @@ export default function ProductPage({ params }: PageProps) {
                   </p>
 
                 </Link>
-
               ))}
 
             </div>
 
           </section>
-
         )}
 
-      </section>
+           </section>
+
+      <CartDrawer />
 
       <Footer />
     </main>
