@@ -1,4 +1,4 @@
-import { Product } from "@/types/product";
+import { Product } from "../../types/product";
 
 const iphone16Pro: Product = {
     id: "8",

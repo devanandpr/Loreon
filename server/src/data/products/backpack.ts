@@ -1,4 +1,4 @@
-import { Product } from "@/types/product";
+import { Product } from "../../types/product";
 
 const backpack: Product = {
     id: "4",

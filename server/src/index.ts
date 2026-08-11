@@ -4,16 +4,15 @@ import helmet from "helmet";
 import morgan from "morgan";
 import dotenv from "dotenv";
 
+import productRoutes from "./routes/productRoutes";
+
 dotenv.config();
 
 const app: Express = express();
 
 const PORT = process.env.PORT || 5000;
 
-// ================================
 // Middleware
-// ================================
-
 app.use(helmet());
 app.use(morgan("dev"));
 app.use(express.json());
@@ -25,11 +24,7 @@ app.use(
   })
 );
 
-// ================================
-// Routes
-// ================================
-
-// Root endpoint
+// Root
 app.get("/", (_req: Request, res: Response) => {
   res.status(200).json({
     success: true,
@@ -38,7 +33,7 @@ app.get("/", (_req: Request, res: Response) => {
   });
 });
 
-// Health check
+// Health Check
 app.get("/health", (_req: Request, res: Response) => {
   res.status(200).json({
     status: "ok",
@@ -46,10 +41,10 @@ app.get("/health", (_req: Request, res: Response) => {
   });
 });
 
-// ================================
-// Start Server
-// ================================
+// Product Routes
+app.use("/api/products", productRoutes);
 
+// Start Server
 app.listen(PORT, () => {
   console.log(
     `🚀 [Loreon API] Server running on http://localhost:${PORT}`

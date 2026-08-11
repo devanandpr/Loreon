@@ -1,4 +1,4 @@
-import { Product } from "@/types/product";
+import { Product } from "../../types/product";
 
 const camera: Product = {
     id: "2",
