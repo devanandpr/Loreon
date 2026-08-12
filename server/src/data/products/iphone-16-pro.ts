@@ -20,9 +20,16 @@ const iphone16Pro: Product = {
 
     badge: "Flagship",
 
+    stock: 50,
+    features: [
+        "A18 Bionic Chip for Unmatched Performance",
+        "Pro Camera System with Advanced Computational Photography",
+        "Titanium Frame for Enhanced Durability and Premium Feel",
+        "iOS 18 with New Features and Optimizations",
+    ],
+
     isFeatured: true,
-    stock: 0,
-    features: []
+    
 };
 
 export default iphone16Pro;

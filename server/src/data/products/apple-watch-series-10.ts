@@ -19,10 +19,17 @@ const appleWatch: Product = {
     description: "Stay connected, active, and healthy with Apple's latest smartwatch featuring advanced health tracking and premium design.",
 
     badge: "New",
+    stock: 99,
+
+  features: [
+    "Advanced Health and Fitness Tracking",
+    "Seamless Apple Ecosystem Integration",
+    "Life-Saving Safety Features",
+    "Always-On Retina Display & Design",
+  ],
 
     isFeatured: true,
-    stock: 0,
-    features: []
+
 };
 
 export default appleWatch;

@@ -1,138 +1,75 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 
 import Navbar from "@/components/Navbar/Navbar";
 import Footer from "@/components/Footer/Footer";
 import CartDrawer from "@/components/cartdrawer/CartDrawer";
-import { getProduct, getProducts } from "@/lib/api";
+import ProductCard from "@/components/ProductCard/ProductCard";
+
+import { PRODUCTS } from "@/data/products";
 import { useCartStore } from "@/store/useCartStore";
-import type { Product } from "@/types/product";
 
-interface PageProps {
-  params: Promise<{
-    id: string;
-  }>;
-}
+export default function ProductPage() {
+  const params = useParams();
+  const { addToCart } = useCartStore();
 
-export default function ProductPage({ params }: PageProps) {
-  const [product, setProduct] = useState<Product | null>(null);
-  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const product = PRODUCTS.find(
+    (p) => p.id === String(params.id)
+  );
 
-  const addToCart = useCartStore((state) => state.addToCart);
-
-  useEffect(() => {
-    async function fetchProduct() {
-      try {
-        setLoading(true);
-
-        const { id } = await params;
-
-        // Get the selected product
-        const productData = await getProduct(id);
-
-        if (!productData?.product) {
-          throw new Error("Product not found");
-        }
-
-        const selectedProduct: Product = productData.product;
-
-        setProduct(selectedProduct);
-
-        // Get all products for related products
-        const productsData = await getProducts();
-
-        const related = productsData.products
-          .filter(
-            (item: Product) =>
-              item.category === selectedProduct.category &&
-              item.id !== selectedProduct.id
-          )
-          .slice(0, 4);
-
-        setRelatedProducts(related);
-      } catch (error) {
-        console.error("Failed to fetch product:", error);
-        setError("Product could not be found.");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchProduct();
-  }, [params]);
-
-  const handleAddToCart = () => {
-    if (!product || product.stock <= 0) {
-      return;
-    }
-
-    addToCart(product);
-  };
-
-  /* Loading */
-
-  if (loading) {
+  // Product not found
+  if (!product) {
     return (
       <main className="min-h-screen bg-black text-white">
         <Navbar />
 
-        <div className="min-h-[70vh] flex items-center justify-center">
-          <p className="text-zinc-400">
-            Loading product...
-          </p>
-        </div>
-
-        <Footer />
-      </main>
-    );
-  }
-
-  /* Error / Product not found */
-
-  if (error || !product) {
-    return (
-      <main className="min-h-screen bg-black text-white">
-        <Navbar />
-
-        <div className="min-h-[70vh] flex flex-col items-center justify-center px-6 text-center">
-          <h1 className="text-3xl font-bold">
+        <section className="min-h-[70vh] flex flex-col items-center justify-center px-6 text-center">
+          <h1 className="text-4xl font-bold mb-4">
             Product Not Found
           </h1>
 
-          <p className="text-zinc-500 mt-3">
-            {error || "This product does not exist."}
+          <p className="text-zinc-500 mb-8">
+            The product you are looking for does not exist.
           </p>
 
           <Link
             href="/products"
-            className="mt-6 bg-white text-black px-6 py-3 rounded-xl font-semibold hover:bg-zinc-200 transition"
+            className="bg-white text-black px-6 py-3 rounded-xl font-semibold hover:bg-zinc-200 transition"
           >
-            Back to Products
+            Back To Products
           </Link>
-        </div>
+        </section>
 
         <Footer />
       </main>
     );
   }
 
+  const relatedProducts = PRODUCTS.filter(
+    (item) =>
+      item.category === product.category &&
+      item.id !== product.id
+  ).slice(0, 4);
+
+  const isOutOfStock = product.stock <= 0;
+
   return (
     <main className="min-h-screen bg-black text-white">
+
       <Navbar />
 
+      {/* Product Section */}
       <section className="max-w-7xl mx-auto px-6 py-12">
 
         {/* Breadcrumb */}
-
         <div className="text-sm text-zinc-500 mb-8">
+
           <Link
             href="/"
-            className="hover:text-white"
+            className="hover:text-white transition"
           >
             Home
           </Link>
@@ -141,7 +78,7 @@ export default function ProductPage({ params }: PageProps) {
 
           <Link
             href="/products"
-            className="hover:text-white"
+            className="hover:text-white transition"
           >
             Products
           </Link>
@@ -151,15 +88,15 @@ export default function ProductPage({ params }: PageProps) {
           <span className="text-white">
             {product.name}
           </span>
+
         </div>
 
         {/* Product */}
-
         <div className="grid lg:grid-cols-2 gap-20">
 
-          {/* Left - Image */}
-
+          {/* ================= LEFT ================= */}
           <div>
+
             <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-10">
 
               <Image
@@ -167,18 +104,22 @@ export default function ProductPage({ params }: PageProps) {
                 alt={product.name}
                 width={650}
                 height={650}
-                className="mx-auto object-contain hover:scale-105 transition duration-500"
+                priority
+                className={`mx-auto object-contain transition duration-500 ${
+                  isOutOfStock
+                    ? "opacity-50"
+                    : "hover:scale-105"
+                }`}
               />
 
             </div>
+
           </div>
 
-          {/* Right - Details */}
-
+          {/* ================= RIGHT ================= */}
           <div>
 
             {/* Badge */}
-
             {product.badge && (
               <span className="inline-block bg-white text-black px-4 py-1 rounded-full text-sm font-semibold mb-5">
                 {product.badge}
@@ -186,19 +127,16 @@ export default function ProductPage({ params }: PageProps) {
             )}
 
             {/* Brand */}
-
             <p className="uppercase tracking-[0.3em] text-zinc-500 text-sm">
               {product.brand}
             </p>
 
-            {/* Product Name */}
-
+            {/* Name */}
             <h1 className="text-5xl font-bold mt-4">
               {product.name}
             </h1>
 
             {/* Rating */}
-
             <div className="flex items-center gap-4 mt-6">
 
               <span className="text-yellow-400 text-xl">
@@ -212,7 +150,6 @@ export default function ProductPage({ params }: PageProps) {
             </div>
 
             {/* Price */}
-
             <div className="mt-8 flex items-center gap-4">
 
               <span className="text-5xl font-bold">
@@ -228,40 +165,37 @@ export default function ProductPage({ params }: PageProps) {
             </div>
 
             {/* Description */}
-
             <p className="mt-8 text-zinc-400 leading-8">
               {product.description}
             </p>
 
             {/* Stock */}
-
             <div className="mt-8">
 
-              <span
-                className={`font-semibold ${
-                  product.stock > 10
-                    ? "text-green-500"
-                    : product.stock > 0
-                    ? "text-orange-400"
-                    : "text-red-500"
-                }`}
-              >
-                {product.stock > 0
-                  ? `${product.stock} In Stock`
-                  : "Out Of Stock"}
-              </span>
+              {isOutOfStock ? (
+                <span className="font-semibold text-red-500">
+                  Out Of Stock
+                </span>
+              ) : product.stock > 10 ? (
+                <span className="font-semibold text-green-500">
+                  {product.stock} In Stock
+                </span>
+              ) : (
+                <span className="font-semibold text-orange-400">
+                  Only {product.stock} Left
+                </span>
+              )}
 
             </div>
 
             {/* Features */}
+            {product.features.length > 0 && (
+              <div className="mt-10">
 
-            <div className="mt-10">
+                <h3 className="font-semibold text-xl mb-4">
+                  Features
+                </h3>
 
-              <h3 className="font-semibold text-xl mb-4">
-                Features
-              </h3>
-
-              {product.features.length > 0 ? (
                 <ul className="space-y-3">
 
                   {product.features.map((feature) => (
@@ -269,22 +203,20 @@ export default function ProductPage({ params }: PageProps) {
                       key={feature}
                       className="text-zinc-400 flex gap-3"
                     >
-                      <span>✔</span>
-                      <span>{feature}</span>
+                      <span className="text-green-500">
+                        ✔
+                      </span>
+
+                      {feature}
                     </li>
                   ))}
 
                 </ul>
-              ) : (
-                <p className="text-zinc-500">
-                  No features listed.
-                </p>
-              )}
 
-            </div>
+              </div>
+            )}
 
             {/* Colors */}
-
             {product.colors &&
               product.colors.length > 0 && (
                 <div className="mt-10">
@@ -293,13 +225,12 @@ export default function ProductPage({ params }: PageProps) {
                     Colors
                   </h3>
 
-                  <div className="flex gap-3 flex-wrap">
+                  <div className="flex flex-wrap gap-3">
 
                     {product.colors.map((color) => (
                       <button
                         key={color}
-                        type="button"
-                        className="border border-zinc-700 rounded-full px-5 py-2 hover:border-white transition"
+                        className="border border-zinc-700 rounded-full px-5 py-2 hover:border-white cursor-pointer transition"
                       >
                         {color}
                       </button>
@@ -311,7 +242,6 @@ export default function ProductPage({ params }: PageProps) {
               )}
 
             {/* Sizes */}
-
             {product.sizes &&
               product.sizes.length > 0 && (
                 <div className="mt-10">
@@ -320,12 +250,11 @@ export default function ProductPage({ params }: PageProps) {
                     Sizes
                   </h3>
 
-                  <div className="flex gap-3 flex-wrap">
+                  <div className="flex flex-wrap gap-3">
 
                     {product.sizes.map((size) => (
                       <button
                         key={size}
-                        type="button"
                         className="border border-zinc-700 rounded-xl px-5 py-2 hover:border-white transition"
                       >
                         {size}
@@ -337,25 +266,30 @@ export default function ProductPage({ params }: PageProps) {
                 </div>
               )}
 
-            {/* Buttons */}
-
+            {/* ================= BUTTONS ================= */}
             <div className="flex gap-4 mt-12">
 
               <button
-                type="button"
-                onClick={handleAddToCart}
-                disabled={product.stock <= 0}
-                className="flex-1 bg-white text-black py-4 rounded-xl font-semibold hover:bg-zinc-200 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                disabled={isOutOfStock}
+                onClick={() => addToCart(product)}
+                className={`flex-1 py-4 rounded-xl font-semibold transition ${
+                  isOutOfStock
+                    ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+                    : "bg-white text-black hover:bg-zinc-200"
+                }`}
               >
-                {product.stock > 0
-                  ? "Add To Cart"
-                  : "Out Of Stock"}
+                {isOutOfStock
+                  ? "Out Of Stock"
+                  : "Add To Cart"}
               </button>
 
               <button
-                type="button"
-                disabled={product.stock <= 0}
-                className="flex-1 border border-zinc-700 rounded-xl hover:border-white transition disabled:opacity-40 disabled:cursor-not-allowed"
+                disabled={isOutOfStock}
+                className={`flex-1 border rounded-xl transition ${
+                  isOutOfStock
+                    ? "border-zinc-800 text-zinc-600 cursor-not-allowed"
+                    : "border-zinc-700 hover:border-white"
+                }`}
               >
                 Buy Now
               </button>
@@ -366,8 +300,7 @@ export default function ProductPage({ params }: PageProps) {
 
         </div>
 
-        {/* Related Products */}
-
+        {/* ================= RELATED PRODUCTS ================= */}
         {relatedProducts.length > 0 && (
           <section className="mt-24">
 
@@ -378,29 +311,10 @@ export default function ProductPage({ params }: PageProps) {
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
 
               {relatedProducts.map((item) => (
-                <Link
-                  href={`/products/${item.id}`}
+                <ProductCard
                   key={item.id}
-                  className="rounded-2xl bg-zinc-900 border border-zinc-800 p-5 hover:border-zinc-600 transition"
-                >
-
-                  <Image
-                    src={item.image}
-                    alt={item.name}
-                    width={220}
-                    height={220}
-                    className="mx-auto h-48 object-contain"
-                  />
-
-                  <h3 className="mt-4 font-semibold">
-                    {item.name}
-                  </h3>
-
-                  <p className="text-zinc-500 mt-1">
-                    ${item.price}
-                  </p>
-
-                </Link>
+                  product={item}
+                />
               ))}
 
             </div>
@@ -408,11 +322,13 @@ export default function ProductPage({ params }: PageProps) {
           </section>
         )}
 
-           </section>
+      </section>
 
+      {/* Cart Drawer */}
       <CartDrawer />
 
       <Footer />
+
     </main>
   );
 }

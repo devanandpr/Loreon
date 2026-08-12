@@ -20,9 +20,16 @@ const macbookAir: Product = {
 
     badge: "Editor's Choice",
 
+    stock: 99,
+    features: [
+        "Apple M4 Chip for Enhanced Performance",
+        "Retina Display with True Tone Technology",
+        "All-Day Battery Life for Productivity on the Go",
+        "Lightweight and Sleek Aluminum Design",
+    ],
+
     isFeatured: true,
-    stock: 0,
-    features: []
+    
 };
 
 export default macbookAir;
