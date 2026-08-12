@@ -3,6 +3,7 @@
 import React from "react";
 import { FiX, FiTrash2, FiPlus, FiMinus } from "react-icons/fi";
 import { useCartStore } from "@/store/useCartStore";
+import Link from "next/link";
 
 export default function CartDrawer() {
   const { isOpen, closeCart, cart, removeFromCart, updateQuantity } = useCartStore();
@@ -85,12 +86,17 @@ export default function CartDrawer() {
             <span className="font-semibold text-sm">Subtotal</span>
             <span className="font-bold text-lg">${total.toFixed(2)}</span>
           </div>
-          <button
-            disabled={cart.length === 0}
-            className="w-full py-3 bg-white text-black font-bold text-sm rounded-lg hover:bg-zinc-200 transition disabled:opacity-50"
-          >
-            Checkout
-          </button>
+          <Link
+  href="/checkout"
+  onClick={closeCart}
+  className={`block w-full py-3 text-center bg-white text-black font-bold text-sm rounded-lg hover:bg-zinc-200 transition ${
+    cart.length === 0
+      ? "pointer-events-none opacity-50"
+      : ""
+  }`}
+>
+  Checkout
+</Link>
         </div>
       </div>
     </div>
