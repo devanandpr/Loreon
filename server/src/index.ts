@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import dotenv from "dotenv";
+import orderRoutes from "./routes/orderRoutes";
 
 import productRoutes from "./routes/productRoutes";
 
@@ -43,6 +44,9 @@ app.get("/health", (_req: Request, res: Response) => {
 
 // Product Routes
 app.use("/api/products", productRoutes);
+
+// Order Routes
+app.use("/api/orders", orderRoutes);
 
 // Start Server
 app.listen(PORT, () => {

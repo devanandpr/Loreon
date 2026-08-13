@@ -8,6 +8,8 @@ import { useCartStore } from "@/store/useCartStore";
 export default function CheckoutPage() {
   const { cart } = useCartStore();
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -35,19 +37,52 @@ export default function CheckoutPage() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    console.log("Order details:", {
-      customer: form,
-      items: cart,
-      subtotal,
-      shipping,
-      total,
-    });
+  try {
+    setIsSubmitting(true);
 
-    alert("Checkout form submitted!");
-  };
+    const response = await fetch(
+      "http://localhost:5000/api/orders",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customer: form,
+          items: cart,
+          subtotal,
+          shipping,
+          total,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.message || "Failed to create order"
+      );
+    }
+
+    console.log("Order created:", data);
+
+    alert(
+      `Order placed successfully!\nOrder ID: ${data.order.id}`
+    );
+  } catch (error) {
+    console.error("Order submission error:", error);
+
+    alert(
+      "Unable to place order. Please try again."
+    );
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   if (cart.length === 0) {
     return (
@@ -242,11 +277,12 @@ export default function CheckoutPage() {
               </div>
 
               <button
-                type="submit"
-                className="w-full mt-8 bg-white text-black py-4 rounded-xl font-bold hover:bg-zinc-200 transition"
-              >
-                Place Order
-              </button>
+  type="submit"
+  disabled={isSubmitting}
+  className="w-full mt-8 bg-white text-black py-4 rounded-xl font-bold hover:bg-zinc-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+>
+  {isSubmitting ? "Placing Order..." : "Place Order"}
+</button>
 
             </form>
 
