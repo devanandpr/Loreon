@@ -19,3 +19,38 @@ export async function getProduct(id: string) {
 
   return response.json();
 }
+
+export async function createOrder(orderData: {
+  customer: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    state: string;
+    pincode: string;
+  };
+  items: {
+    id: string;
+    quantity: number;
+  }[];
+  subtotal: number;
+  shipping: number;
+  total: number;
+}) {
+  const response = await fetch(`${API_URL}/orders`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(orderData),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to create order");
+  }
+
+  return data;
+}

@@ -4,9 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useCartStore } from "@/store/useCartStore";
+import {createOrder} from "@/lib/api";
 
 export default function CheckoutPage() {
-  const { cart } = useCartStore();
+  const { cart , clearCart } = useCartStore();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -52,7 +53,12 @@ export default function CheckoutPage() {
         },
         body: JSON.stringify({
           customer: form,
-          items: cart,
+
+          items: cart.map((item) => ({
+            id: item.id,
+            quantity: item.quantity,
+          })),
+
           subtotal,
           shipping,
           total,
@@ -70,45 +76,21 @@ export default function CheckoutPage() {
 
     console.log("Order created:", data);
 
-    alert(
-      `Order placed successfully!\nOrder ID: ${data.order.id}`
-    );
+    clearCart();
+    window.location.href = `/order-success?orderId=${data.order.id}`;
+    clearCart();
   } catch (error) {
     console.error("Order submission error:", error);
 
     alert(
-      "Unable to place order. Please try again."
+      error instanceof Error
+        ? error.message
+        : "Unable to place order. Please try again."
     );
   } finally {
     setIsSubmitting(false);
   }
 };
-
-  if (cart.length === 0) {
-    return (
-      <main className="min-h-screen bg-black text-white">
-        <div className="max-w-4xl mx-auto px-6 py-24 text-center">
-
-          <h1 className="text-4xl font-bold">
-            Your Cart Is Empty
-          </h1>
-
-          <p className="text-zinc-400 mt-4">
-            Add some products before proceeding to checkout.
-          </p>
-
-          <Link
-            href="/products"
-            className="inline-block mt-8 bg-white text-black px-6 py-3 rounded-xl font-semibold hover:bg-zinc-200 transition"
-          >
-            Continue Shopping
-          </Link>
-
-        </div>
-      </main>
-    );
-  }
-
   return (
     <main className="min-h-screen bg-black text-white">
 

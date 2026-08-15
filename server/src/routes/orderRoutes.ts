@@ -3,6 +3,11 @@ import prisma from "../lib/prisma";
 
 const router = Router();
 
+// ========================================
+// POST /api/orders
+// Create a new order
+// ========================================
+
 router.post("/", async (req: Request, res: Response) => {
   try {
     const {
@@ -49,7 +54,15 @@ router.post("/", async (req: Request, res: Response) => {
         });
 
         if (!product) {
-          throw new Error(`Product not found: ${item.id}`);
+          throw new Error(
+            `Product not found: ${item.id}`
+          );
+        }
+
+        if (item.quantity <= 0) {
+          throw new Error(
+            `Invalid quantity for ${product.name}`
+          );
         }
 
         if (product.stock < item.quantity) {
@@ -64,6 +77,7 @@ router.post("/", async (req: Request, res: Response) => {
           price: product.price,
         });
 
+        // Reduce stock
         await tx.product.update({
           where: {
             id: product.id,
@@ -76,6 +90,7 @@ router.post("/", async (req: Request, res: Response) => {
         });
       }
 
+      // Create order
       return tx.order.create({
         data: {
           customerName: customer.name,
@@ -111,7 +126,10 @@ router.post("/", async (req: Request, res: Response) => {
       order,
     });
   } catch (error) {
-    console.error("Order creation failed:", error);
+    console.error(
+      "Order creation failed:",
+      error
+    );
 
     res.status(400).json({
       success: false,
@@ -122,5 +140,173 @@ router.post("/", async (req: Request, res: Response) => {
     });
   }
 });
+
+// ========================================
+// GET /api/orders
+// Get all orders
+// ========================================
+
+router.get("/", async (_req: Request, res: Response) => {
+  try {
+    const orders = await prisma.order.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        items: {
+          include: {
+            product: true,
+          },
+        },
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      count: orders.length,
+      orders,
+    });
+  } catch (error) {
+    console.error(
+      "Error fetching orders:",
+      error
+    );
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch orders",
+    });
+  }
+});
+
+// ========================================
+// GET /api/orders/:id
+// Get a single order
+// ========================================
+
+router.get("/:id", async (req: Request, res: Response) => {
+  try {
+    const order = await prisma.order.findUnique({
+      where: {
+        id: req.params.id,
+      },
+
+      include: {
+        items: {
+          include: {
+            product: true,
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      order,
+    });
+  } catch (error) {
+    console.error(
+      "Error fetching order:",
+      error
+    );
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch order",
+    });
+  }
+});
+
+// ========================================
+// PATCH /api/orders/:id/status
+// Update order status
+// ========================================
+
+router.patch(
+  "/:id/status",
+  async (req: Request, res: Response) => {
+    try {
+      const { status } = req.body;
+
+      // Allowed order statuses
+      const allowedStatuses = [
+        "PENDING",
+        "CONFIRMED",
+        "PROCESSING",
+        "SHIPPED",
+        "DELIVERED",
+        "CANCELLED",
+      ];
+
+      // Validate status
+      if (
+        !status ||
+        !allowedStatuses.includes(status)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid order status. Allowed values: PENDING, CONFIRMED, PROCESSING, SHIPPED, DELIVERED, CANCELLED",
+        });
+      }
+
+      // Check whether order exists
+      const existingOrder =
+        await prisma.order.findUnique({
+          where: {
+            id: req.params.id,
+          },
+        });
+
+      if (!existingOrder) {
+        return res.status(404).json({
+          success: false,
+          message: "Order not found",
+        });
+      }
+
+      // Update status
+      const updatedOrder =
+        await prisma.order.update({
+          where: {
+            id: req.params.id,
+          },
+          data: {
+            status,
+          },
+          include: {
+            items: {
+              include: {
+                product: true,
+              },
+            },
+          },
+        });
+
+      res.status(200).json({
+        success: true,
+        message: "Order status updated successfully",
+        order: updatedOrder,
+      });
+    } catch (error) {
+      console.error(
+        "Error updating order status:",
+        error
+      );
+
+      res.status(500).json({
+        success: false,
+        message: "Failed to update order status",
+      });
+    }
+  }
+);
 
 export default router;
