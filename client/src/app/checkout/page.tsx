@@ -11,6 +11,8 @@ export default function CheckoutPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [paymentMethod, setPaymentMethod] = useState("COD");
+
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -52,17 +54,13 @@ export default function CheckoutPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          customer: form,
-
-          items: cart.map((item) => ({
-            id: item.id,
-            quantity: item.quantity,
-          })),
-
-          subtotal,
-          shipping,
-          total,
-        }),
+  customer: form,
+  items: cart,
+  subtotal,
+  shipping,
+  total,
+  paymentMethod,
+}),
       }
     );
 
@@ -91,6 +89,63 @@ export default function CheckoutPage() {
     setIsSubmitting(false);
   }
 };
+
+<div className="mt-8">
+  <h2 className="text-xl font-semibold">
+    Payment Method
+  </h2>
+
+  <div className="mt-4 space-y-3">
+
+    <label className="flex items-center gap-4 p-4 rounded-xl border border-zinc-700 bg-zinc-900 cursor-pointer">
+      <input
+        type="radio"
+        name="paymentMethod"
+        value="COD"
+        checked={paymentMethod === "COD"}
+        onChange={(e) =>
+          setPaymentMethod(e.target.value)
+        }
+        className="w-4 h-4"
+      />
+
+      <div>
+        <p className="font-semibold">
+          Cash on Delivery
+        </p>
+
+        <p className="text-sm text-zinc-500">
+          Pay when your order arrives.
+        </p>
+      </div>
+    </label>
+
+    <label className="flex items-center gap-4 p-4 rounded-xl border border-zinc-800 bg-zinc-900/50 opacity-50 cursor-not-allowed">
+      <input
+        type="radio"
+        name="paymentMethod"
+        value="ONLINE"
+        disabled
+        checked={paymentMethod === "ONLINE"}
+        onChange={(e) =>
+          setPaymentMethod(e.target.value)
+        }
+        className="w-4 h-4"
+      />
+
+      <div>
+        <p className="font-semibold">
+          Online Payment
+        </p>
+
+        <p className="text-sm text-zinc-500">
+          Coming soon.
+        </p>
+      </div>
+    </label>
+
+  </div>
+</div>
   return (
     <main className="min-h-screen bg-black text-white">
 

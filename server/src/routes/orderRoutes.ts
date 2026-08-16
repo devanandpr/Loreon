@@ -11,12 +11,13 @@ const router = Router();
 router.post("/", async (req: Request, res: Response) => {
   try {
     const {
-      customer,
-      items,
-      subtotal,
-      shipping,
-      total,
-    } = req.body;
+  customer,
+  items,
+  subtotal,
+  shipping,
+  total,
+  paymentMethod,
+} = req.body;
 
     // Basic validation
     if (
@@ -104,10 +105,12 @@ router.post("/", async (req: Request, res: Response) => {
           subtotal,
           shipping,
           total,
+          paymentMethod: paymentMethod || "COD",
 
           items: {
             create: orderItems,
           },
+          
         },
 
         include: {
