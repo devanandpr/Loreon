@@ -7,6 +7,7 @@ datasource db {
   provider = "postgresql"
 }
 
+
 model Product {
   id            String      @id
   slug          String      @unique
@@ -42,6 +43,8 @@ model Order {
   subtotal      Float
   shipping      Float
   total         Float
+
+  paymentMethod String @default("COD")
 
   status        OrderStatus  @default(PENDING)
   paymentStatus PaymentStatus @default(PENDING)
