@@ -4,6 +4,12 @@ import helmet from "helmet";
 import morgan from "morgan";
 import dotenv from "dotenv";
 import orderRoutes from "./routes/orderRoutes";
+import authRoutes from "./routes/authRoutes";
+import {
+  authenticate,
+  requireAdmin,
+  AuthenticatedRequest,
+} from "./middleware/authMiddleware";
 
 import productRoutes from "./routes/productRoutes";
 
@@ -17,6 +23,18 @@ const PORT = process.env.PORT || 5000;
 app.use(helmet());
 app.use(morgan("dev"));
 app.use(express.json());
+
+app.get(
+  "/api/auth/me",
+  authenticate,
+  (req: AuthenticatedRequest, res: Response) => {
+    res.json({
+      success: true,
+      message: "You are authenticated",
+      user: req.user,
+    });
+  }
+);
 
 app.use(
   cors({
@@ -47,6 +65,11 @@ app.use("/api/products", productRoutes);
 
 // Order Routes
 app.use("/api/orders", orderRoutes);
+
+// Authentication Routes
+app.use("/api/auth", authRoutes);
+
+
 
 // Start Server
 app.listen(PORT, () => {

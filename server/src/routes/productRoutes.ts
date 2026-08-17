@@ -1,5 +1,10 @@
 import { Router, Request, Response } from "express";
 import prisma from "../lib/prisma";
+import {
+  authenticate,
+  requireAdmin,
+  AuthenticatedRequest,
+} from "../middleware/authMiddleware";
 
 const router = Router();
 
@@ -8,7 +13,11 @@ const router = Router();
 // Create a new product
 // ========================================
 
-router.post("/", async (req: Request, res: Response) => {
+router.post(
+  "/",
+  authenticate,
+  requireAdmin,
+  async (req: AuthenticatedRequest, res: Response) =>  {
   try {
     const {
       id,
@@ -136,7 +145,11 @@ router.get("/", async (_req: Request, res: Response) => {
 // Update a product
 // ========================================
 
-router.put("/:id", async (req: Request, res: Response) => {
+router.put(
+  "/:id",
+  authenticate,
+  requireAdmin,
+  async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -215,7 +228,11 @@ router.put("/:id", async (req: Request, res: Response) => {
 // Delete a product
 // ========================================
 
-router.delete("/:id", async (req: Request, res: Response) => {
+router.delete(
+  "/:id",
+  authenticate,
+  requireAdmin,
+  async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
 
