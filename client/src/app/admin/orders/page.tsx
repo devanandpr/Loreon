@@ -134,9 +134,7 @@ export default function AdminOrdersPage() {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="text-center">
-          <div className="text-4xl mb-4">
-            ⏳
-          </div>
+          <div className="text-4xl mb-4">⏳</div>
 
           <h1 className="text-2xl font-bold">
             Loading Orders
@@ -154,7 +152,6 @@ export default function AdminOrdersPage() {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
         <div className="text-center">
-
           <h1 className="text-3xl font-bold">
             Unable to Load Orders
           </h1>
@@ -169,7 +166,6 @@ export default function AdminOrdersPage() {
           >
             Try Again
           </button>
-
         </div>
       </main>
     );
@@ -293,6 +289,7 @@ export default function AdminOrdersPage() {
 
           </div>
         ) : (
+
           <div className="space-y-5">
 
             {orders.map((order) => (
@@ -436,11 +433,25 @@ export default function AdminOrdersPage() {
 
                 </div>
 
+                {/* View Details */}
+
+                <div className="border-t border-zinc-800 mt-6 pt-5 flex justify-end">
+
+                  <Link
+                    href={`/admin/orders/${order.id}`}
+                    className="bg-white text-black px-5 py-3 rounded-xl font-semibold hover:bg-zinc-200 transition"
+                  >
+                    View Details →
+                  </Link>
+
+                </div>
+
               </div>
 
             ))}
 
           </div>
+
         )}
 
       </section>
