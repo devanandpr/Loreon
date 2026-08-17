@@ -210,6 +210,50 @@ router.put("/:id", async (req: Request, res: Response) => {
   }
 });
 
+// ========================================
+// DELETE /api/products/:id
+// Delete a product
+// ========================================
+
+router.delete("/:id", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // Check if product exists
+    const existingProduct = await prisma.product.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!existingProduct) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    // Delete product
+    await prisma.product.delete({
+      where: {
+        id,
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Product deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting product:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete product",
+    });
+  }
+});
+
 
 // ========================================
 // GET /api/products/:id

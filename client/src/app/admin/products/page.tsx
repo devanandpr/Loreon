@@ -20,7 +20,7 @@ interface Product {
   stock: number;
   createdAt: string;
   updatedAt: string;
-  }
+}
 
 interface ProductForm {
   id: string;
@@ -39,16 +39,7 @@ interface ProductForm {
   stock: string;
 }
 
-
-export default function AdminProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editingProductId, setEditingProductId] = useState<string | null>(null);
-
-const [form, setForm] = useState<ProductForm>({
+const emptyForm: ProductForm = {
   id: "",
   slug: "",
   name: "",
@@ -63,7 +54,25 @@ const [form, setForm] = useState<ProductForm>({
   badge: "",
   isFeatured: false,
   stock: "0",
-});
+};
+
+export default function AdminProductsPage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [editingProductId, setEditingProductId] = useState<string | null>(
+    null
+  );
+
+  const [form, setForm] = useState<ProductForm>(emptyForm);
+
+  // ========================================
+  // GET PRODUCTS
+  // ========================================
 
   useEffect(() => {
     fetchProducts();
@@ -100,191 +109,219 @@ const [form, setForm] = useState<ProductForm>({
     }
   };
 
+  // ========================================
+  // ADD PRODUCT
+  // ========================================
+
   const handleAddProduct = async (
-  e: React.FormEvent
-) => {
-  e.preventDefault();
+    e: React.FormEvent
+  ) => {
+    e.preventDefault();
 
-  try {
-    setIsSubmitting(true);
+    try {
+      setIsSubmitting(true);
 
-    const response = await fetch(
-      "http://localhost:5000/api/products",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: form.id,
-          slug: form.slug,
-          name: form.name,
-          brand: form.brand,
-          category: form.category,
-          price: Number(form.price),
-          originalPrice: form.originalPrice
-            ? Number(form.originalPrice)
-            : null,
-          rating: Number(form.rating),
-          reviews: Number(form.reviews),
-          image: form.image,
-          description: form.description,
-          badge: form.badge || null,
-          isFeatured: form.isFeatured,
-          stock: Number(form.stock),
-        }),
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(
-        data.message || "Failed to create product"
+      const response = await fetch(
+        "http://localhost:5000/api/products",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: form.id,
+            slug: form.slug,
+            name: form.name,
+            brand: form.brand,
+            category: form.category,
+            price: Number(form.price),
+            originalPrice: form.originalPrice
+              ? Number(form.originalPrice)
+              : null,
+            rating: Number(form.rating),
+            reviews: Number(form.reviews),
+            image: form.image,
+            description: form.description,
+            badge: form.badge || null,
+            isFeatured: form.isFeatured,
+            stock: Number(form.stock),
+          }),
+        }
       );
-    }
 
-    alert("Product created successfully!");
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to create product"
+        );
+      }
+
+      alert("Product created successfully!");
+
+      setForm({ ...emptyForm });
+      setShowAddForm(false);
+
+      await fetchProducts();
+    } catch (error) {
+      console.error("Error creating product:", error);
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to create product"
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ========================================
+  // START EDITING PRODUCT
+  // ========================================
+
+  const handleEditProduct = (product: Product) => {
+    setEditingProductId(product.id);
 
     setForm({
-      id: "",
-      slug: "",
-      name: "",
-      brand: "",
-      category: "",
-      price: "",
-      originalPrice: "",
-      rating: "0",
-      reviews: "0",
-      image: "",
-      description: "",
-      badge: "",
-      isFeatured: false,
-      stock: "0",
+      id: product.id,
+      slug: product.slug,
+      name: product.name,
+      brand: product.brand,
+      category: product.category,
+      price: String(product.price),
+      originalPrice:
+        product.originalPrice !== null &&
+        product.originalPrice !== undefined
+          ? String(product.originalPrice)
+          : "",
+      rating: String(product.rating),
+      reviews: String(product.reviews),
+      image: product.image,
+      description: product.description,
+      badge: product.badge || "",
+      isFeatured: product.isFeatured,
+      stock: String(product.stock),
     });
 
-    setShowAddForm(false);
+    setShowAddForm(true);
+  };
 
-    await fetchProducts();
-  } catch (error) {
-    console.error("Error creating product:", error);
+  // ========================================
+  // UPDATE PRODUCT
+  // ========================================
 
-    alert(
-      error instanceof Error
-        ? error.message
-        : "Failed to create product"
-    );
-  } finally {
-    setIsSubmitting(false);
-  }
-};
-const handleEditProduct = (product: Product) => {
-  setEditingProductId(product.id);
+  const handleUpdateProduct = async (
+    e: React.FormEvent
+  ) => {
+    e.preventDefault();
 
-  setForm({
-    id: product.id,
-    slug: product.slug,
-    name: product.name,
-    brand: product.brand,
-    category: product.category,
-    price: String(product.price),
-    originalPrice:
-      product.originalPrice !== null &&
-      product.originalPrice !== undefined
-        ? String(product.originalPrice)
-        : "",
-    rating: String(product.rating),
-    reviews: String(product.reviews),
-    image: product.image,
-    description: product.description,
-    badge: product.badge || "",
-    isFeatured: product.isFeatured,
-    stock: String(product.stock),
-  });
+    if (!editingProductId) return;
 
-  setShowAddForm(true);
-};
+    try {
+      setIsSubmitting(true);
 
-const handleUpdateProduct = async (
-  e: React.FormEvent
-) => {
-  e.preventDefault();
+      const response = await fetch(
+        `http://localhost:5000/api/products/${editingProductId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            slug: form.slug,
+            name: form.name,
+            brand: form.brand,
+            category: form.category,
+            price: Number(form.price),
+            originalPrice: form.originalPrice
+              ? Number(form.originalPrice)
+              : null,
+            rating: Number(form.rating),
+            reviews: Number(form.reviews),
+            image: form.image,
+            description: form.description,
+            badge: form.badge || null,
+            isFeatured: form.isFeatured,
+            stock: Number(form.stock),
+          }),
+        }
+      );
 
-  if (!editingProductId) return;
+      const data = await response.json();
 
-  try {
-    setIsSubmitting(true);
-
-    const response = await fetch(
-      `http://localhost:5000/api/products/${editingProductId}`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          slug: form.slug,
-          name: form.name,
-          brand: form.brand,
-          category: form.category,
-          price: Number(form.price),
-          originalPrice: form.originalPrice
-            ? Number(form.originalPrice)
-            : null,
-          rating: Number(form.rating),
-          reviews: Number(form.reviews),
-          image: form.image,
-          description: form.description,
-          badge: form.badge || null,
-          isFeatured: form.isFeatured,
-          stock: Number(form.stock),
-        }),
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to update product"
+        );
       }
+
+      alert("Product updated successfully!");
+
+      setEditingProductId(null);
+      setShowAddForm(false);
+      setForm({ ...emptyForm });
+
+      await fetchProducts();
+    } catch (error) {
+      console.error("Error updating product:", error);
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to update product"
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ========================================
+  // DELETE PRODUCT
+  // ========================================
+
+  const handleDeleteProduct = async (
+    product: Product
+  ) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${product.name}"?`
     );
 
-    const data = await response.json();
+    if (!confirmed) return;
 
-    if (!response.ok) {
-      throw new Error(
-        data.message || "Failed to update product"
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/products/${product.id}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to delete product"
+        );
+      }
+
+      alert("Product deleted successfully!");
+
+      await fetchProducts();
+    } catch (error) {
+      console.error("Error deleting product:", error);
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to delete product"
       );
     }
+  };
 
-    alert("Product updated successfully!");
-
-    setEditingProductId(null);
-    setShowAddForm(false);
-
-    setForm({
-      id: "",
-      slug: "",
-      name: "",
-      brand: "",
-      category: "",
-      price: "",
-      originalPrice: "",
-      rating: "0",
-      reviews: "0",
-      image: "",
-      description: "",
-      badge: "",
-      isFeatured: false,
-      stock: "0",
-    });
-
-    await fetchProducts();
-  } catch (error) {
-    console.error("Error updating product:", error);
-
-    alert(
-      error instanceof Error
-        ? error.message
-        : "Failed to update product"
-    );
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+  // ========================================
+  // LOADING
+  // ========================================
 
   if (loading) {
     return (
@@ -303,6 +340,10 @@ const handleUpdateProduct = async (
       </main>
     );
   }
+
+  // ========================================
+  // ERROR
+  // ========================================
 
   if (error) {
     return (
@@ -327,6 +368,10 @@ const handleUpdateProduct = async (
     );
   }
 
+  // ========================================
+  // PAGE
+  // ========================================
+
   return (
     <main className="min-h-screen bg-black text-white">
 
@@ -343,6 +388,7 @@ const handleUpdateProduct = async (
           </Link>
 
           <div className="flex items-center gap-6">
+
             <Link
               href="/admin/orders"
               className="text-zinc-400 hover:text-white transition"
@@ -353,6 +399,7 @@ const handleUpdateProduct = async (
             <span className="text-zinc-500">
               Admin
             </span>
+
           </div>
 
         </div>
@@ -367,6 +414,7 @@ const handleUpdateProduct = async (
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10">
 
           <div>
+
             <p className="uppercase tracking-[0.3em] text-zinc-500 text-sm">
               Administration
             </p>
@@ -378,14 +426,19 @@ const handleUpdateProduct = async (
             <p className="text-zinc-400 mt-3">
               Manage your Loreon product inventory.
             </p>
+
           </div>
 
           <button
-  onClick={() => setShowAddForm(true)}
-  className="bg-white text-black px-6 py-3 rounded-xl font-semibold hover:bg-zinc-200 transition"
->
-  + Add Product
-</button>
+            onClick={() => {
+              setEditingProductId(null);
+              setForm({ ...emptyForm });
+              setShowAddForm(true);
+            }}
+            className="bg-white text-black px-6 py-3 rounded-xl font-semibold hover:bg-zinc-200 transition"
+          >
+            + Add Product
+          </button>
 
         </div>
 
@@ -394,6 +447,7 @@ const handleUpdateProduct = async (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
 
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+
             <p className="text-zinc-500 text-sm">
               Total Products
             </p>
@@ -401,9 +455,11 @@ const handleUpdateProduct = async (
             <p className="text-3xl font-bold mt-2">
               {products.length}
             </p>
+
           </div>
 
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+
             <p className="text-zinc-500 text-sm">
               In Stock
             </p>
@@ -415,9 +471,11 @@ const handleUpdateProduct = async (
                 ).length
               }
             </p>
+
           </div>
 
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+
             <p className="text-zinc-500 text-sm">
               Out of Stock
             </p>
@@ -429,9 +487,11 @@ const handleUpdateProduct = async (
                 ).length
               }
             </p>
+
           </div>
 
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+
             <p className="text-zinc-500 text-sm">
               Featured
             </p>
@@ -443,244 +503,321 @@ const handleUpdateProduct = async (
                 ).length
               }
             </p>
+
           </div>
 
         </div>
 
+        {/* Add / Edit Form */}
+
         {showAddForm && (
-  <div className="mb-8 bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+          <div className="mb-8 bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
 
-    <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-6">
 
-      <div>
-        <h2 className="text-2xl font-bold">
-  {editingProductId
-    ? "Update your product information"
-    : "Add a new product to Loreon"}
-</h2>
+              <div>
 
-        <p className="text-zinc-500 mt-1">
-          Add a new product to Loreon.
-        </p>
-      </div>
+                <h2 className="text-2xl font-bold">
+                  {editingProductId
+                    ? "Edit Product"
+                    : "Add Product"}
+                </h2>
 
-      <button
-        onClick={() => setShowAddForm(false)}
-        className="text-zinc-400 hover:text-white"
-      >
-        ✕
-      </button>
+                <p className="text-zinc-500 mt-1">
+                  {editingProductId
+                    ? "Update your product information."
+                    : "Add a new product to Loreon."}
+                </p>
 
-    </div>
+              </div>
 
-    <form
-  onSubmit={
-    editingProductId
-      ? handleUpdateProduct
-      : handleAddProduct
-  }
+              <button
+                onClick={() => {
+                  setShowAddForm(false);
+                  setEditingProductId(null);
+                  setForm({ ...emptyForm });
+                }}
+                className="text-zinc-400 hover:text-white"
+              >
+                ✕
+              </button>
 
-    >
+            </div>
 
-      <input
-  required
-  disabled={!!editingProductId}
-  placeholder="Product ID"
-  value={form.id}
-  onChange={(e) =>
-    setForm({ ...form, id: e.target.value })
-  }
-  className="bg-black border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-white disabled:opacity-50"
-/>
+            <form
+              onSubmit={
+                editingProductId
+                  ? handleUpdateProduct
+                  : handleAddProduct
+              }
+              className="grid grid-cols-1 md:grid-cols-2 gap-5"
+            >
 
-      <input
-        required
-        placeholder="Slug"
-        value={form.slug}
-        onChange={(e) =>
-          setForm({ ...form, slug: e.target.value })
-        }
-        className="bg-black border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-white"
-      />
+              {/* Product ID */}
 
-      <input
-        required
-        placeholder="Product name"
-        value={form.name}
-        onChange={(e) =>
-          setForm({ ...form, name: e.target.value })
-        }
-        className="bg-black border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-white"
-      />
+              <input
+                required
+                disabled={!!editingProductId}
+                placeholder="Product ID"
+                value={form.id}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    id: e.target.value,
+                  })
+                }
+                className="bg-black border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-white disabled:opacity-50"
+              />
 
-      <input
-        required
-        placeholder="Brand"
-        value={form.brand}
-        onChange={(e) =>
-          setForm({ ...form, brand: e.target.value })
-        }
-        className="bg-black border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-white"
-      />
+              {/* Slug */}
 
-      <input
-        required
-        placeholder="Category"
-        value={form.category}
-        onChange={(e) =>
-          setForm({ ...form, category: e.target.value })
-        }
-        className="bg-black border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-white"
-      />
+              <input
+                required
+                placeholder="Slug"
+                value={form.slug}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    slug: e.target.value,
+                  })
+                }
+                className="bg-black border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-white"
+              />
 
-      <input
-        required
-        type="number"
-        placeholder="Price"
-        value={form.price}
-        onChange={(e) =>
-          setForm({ ...form, price: e.target.value })
-        }
-        className="bg-black border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-white"
-      />
+              {/* Name */}
 
-      <input
-        type="number"
-        placeholder="Original price"
-        value={form.originalPrice}
-        onChange={(e) =>
-          setForm({
-            ...form,
-            originalPrice: e.target.value,
-          })
-        }
-        className="bg-black border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-white"
-      />
+              <input
+                required
+                placeholder="Product name"
+                value={form.name}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    name: e.target.value,
+                  })
+                }
+                className="bg-black border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-white"
+              />
 
-      <input
-        type="number"
-        step="0.1"
-        min="0"
-        max="5"
-        placeholder="Rating"
-        value={form.rating}
-        onChange={(e) =>
-          setForm({ ...form, rating: e.target.value })
-        }
-        className="bg-black border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-white"
-      />
+              {/* Brand */}
 
-      <input
-        type="number"
-        min="0"
-        placeholder="Reviews"
-        value={form.reviews}
-        onChange={(e) =>
-          setForm({ ...form, reviews: e.target.value })
-        }
-        className="bg-black border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-white"
-      />
+              <input
+                required
+                placeholder="Brand"
+                value={form.brand}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    brand: e.target.value,
+                  })
+                }
+                className="bg-black border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-white"
+              />
 
-      <input
-        type="number"
-        min="0"
-        placeholder="Stock"
-        value={form.stock}
-        onChange={(e) =>
-          setForm({ ...form, stock: e.target.value })
-        }
-        className="bg-black border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-white"
-      />
+              {/* Category */}
 
-      <input
-        placeholder="Badge (optional)"
-        value={form.badge}
-        onChange={(e) =>
-          setForm({ ...form, badge: e.target.value })
-        }
-        className="bg-black border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-white"
-      />
+              <input
+                required
+                placeholder="Category"
+                value={form.category}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    category: e.target.value,
+                  })
+                }
+                className="bg-black border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-white"
+              />
 
-      <input
-        required
-        placeholder="Image URL"
-        value={form.image}
-        onChange={(e) =>
-          setForm({ ...form, image: e.target.value })
-        }
-        className="md:col-span-2 bg-black border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-white"
-      />
+              {/* Price */}
 
-      <textarea
-        required
-        placeholder="Product description"
-        value={form.description}
-        onChange={(e) =>
-          setForm({
-            ...form,
-            description: e.target.value,
-          })
-        }
-        rows={5}
-        className="md:col-span-2 bg-black border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-white resize-none"
-      />
+              <input
+                required
+                type="number"
+                placeholder="Price"
+                value={form.price}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    price: e.target.value,
+                  })
+                }
+                className="bg-black border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-white"
+              />
 
-      <label className="md:col-span-2 flex items-center gap-3 cursor-pointer">
+              {/* Original Price */}
 
-        <input
-          type="checkbox"
-          checked={form.isFeatured}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              isFeatured: e.target.checked,
-            })
-          }
-          className="w-4 h-4"
-        />
+              <input
+                type="number"
+                placeholder="Original price"
+                value={form.originalPrice}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    originalPrice: e.target.value,
+                  })
+                }
+                className="bg-black border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-white"
+              />
 
-        <span>
-          Mark as featured product
-        </span>
+              {/* Rating */}
 
-      </label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                max="5"
+                placeholder="Rating"
+                value={form.rating}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    rating: e.target.value,
+                  })
+                }
+                className="bg-black border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-white"
+              />
 
-      <div className="md:col-span-2 flex gap-4">
+              {/* Reviews */}
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="bg-white text-black px-6 py-3 rounded-xl font-semibold hover:bg-zinc-200 transition disabled:opacity-50"
-        >
-          {isSubmitting
-  ? editingProductId
-    ? "Saving..."
-    : "Creating..."
-  : editingProductId
-    ? "Save Changes"
-    : "Create Product"}
-        </button>
+              <input
+                type="number"
+                min="0"
+                placeholder="Reviews"
+                value={form.reviews}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    reviews: e.target.value,
+                  })
+                }
+                className="bg-black border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-white"
+              />
 
-        <button
-          type="button"
-          onClick={() => {
-  setShowAddForm(false);
-  setEditingProductId(null);
-}}
-          className="border border-zinc-700 px-6 py-3 rounded-xl font-semibold hover:bg-zinc-800 transition"
-        >
-          Cancel
-        </button>
+              {/* Stock */}
 
-      </div>
+              <input
+                type="number"
+                min="0"
+                placeholder="Stock"
+                value={form.stock}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    stock: e.target.value,
+                  })
+                }
+                className="bg-black border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-white"
+              />
 
-    </form>
-  </div>
-)}
+              {/* Badge */}
 
-        {/* Product table */}
+              <input
+                placeholder="Badge (optional)"
+                value={form.badge}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    badge: e.target.value,
+                  })
+                }
+                className="bg-black border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-white"
+              />
+
+              {/* Image */}
+
+              <input
+                required
+                placeholder="Image URL"
+                value={form.image}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    image: e.target.value,
+                  })
+                }
+                className="md:col-span-2 bg-black border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-white"
+              />
+
+              {/* Description */}
+
+              <textarea
+                required
+                placeholder="Product description"
+                value={form.description}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    description: e.target.value,
+                  })
+                }
+                rows={5}
+                className="md:col-span-2 bg-black border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-white resize-none"
+              />
+
+              {/* Featured */}
+
+              <label className="md:col-span-2 flex items-center gap-3 cursor-pointer">
+
+                <input
+                  type="checkbox"
+                  checked={form.isFeatured}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      isFeatured: e.target.checked,
+                    })
+                  }
+                  className="w-4 h-4"
+                />
+
+                <span>
+                  Mark as featured product
+                </span>
+
+              </label>
+
+              {/* Form Buttons */}
+
+              <div className="md:col-span-2 flex gap-4">
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="bg-white text-black px-6 py-3 rounded-xl font-semibold hover:bg-zinc-200 transition disabled:opacity-50"
+                >
+                  {isSubmitting
+                    ? editingProductId
+                      ? "Saving..."
+                      : "Creating..."
+                    : editingProductId
+                      ? "Save Changes"
+                      : "Create Product"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setEditingProductId(null);
+                    setForm({ ...emptyForm });
+                  }}
+                  className="border border-zinc-700 px-6 py-3 rounded-xl font-semibold hover:bg-zinc-800 transition"
+                >
+                  Cancel
+                </button>
+
+              </div>
+
+            </form>
+
+          </div>
+        )}
+
+        {/* Product Table */}
 
         {products.length === 0 ? (
+
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-12 text-center">
 
             <h2 className="text-2xl font-bold">
@@ -692,7 +829,9 @@ const handleUpdateProduct = async (
             </p>
 
           </div>
+
         ) : (
+
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
 
             <div className="overflow-x-auto">
@@ -700,6 +839,7 @@ const handleUpdateProduct = async (
               <table className="w-full">
 
                 <thead className="border-b border-zinc-800">
+
                   <tr className="text-left text-sm text-zinc-500">
 
                     <th className="px-6 py-4">
@@ -727,6 +867,7 @@ const handleUpdateProduct = async (
                     </th>
 
                   </tr>
+
                 </thead>
 
                 <tbody>
@@ -771,8 +912,6 @@ const handleUpdateProduct = async (
                         </div>
 
                       </td>
-                      interface ProductForm {
-}
 
                       {/* Category */}
 
@@ -805,13 +944,17 @@ const handleUpdateProduct = async (
                       <td className="px-6 py-5">
 
                         {product.stock > 0 ? (
+
                           <span className="text-green-400">
                             {product.stock}
                           </span>
+
                         ) : (
+
                           <span className="text-red-400">
                             Out of stock
                           </span>
+
                         )}
 
                       </td>
@@ -821,13 +964,17 @@ const handleUpdateProduct = async (
                       <td className="px-6 py-5">
 
                         {product.isFeatured ? (
+
                           <span className="text-yellow-400">
                             ★ Featured
                           </span>
+
                         ) : (
+
                           <span className="text-zinc-600">
                             —
                           </span>
+
                         )}
 
                       </td>
@@ -836,12 +983,27 @@ const handleUpdateProduct = async (
 
                       <td className="px-6 py-5">
 
-                        <button
-                             onClick={() => handleEditProduct(product)}
-                             className="text-zinc-400 hover:text-white transition"
-                        >
-                              Edit
-                        </button>
+                        <div className="flex items-center gap-4">
+
+                          <button
+                            onClick={() =>
+                              handleEditProduct(product)
+                            }
+                            className="text-zinc-400 hover:text-white transition"
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            onClick={() =>
+                              handleDeleteProduct(product)
+                            }
+                            className="text-red-400 hover:text-red-300 transition"
+                          >
+                            Delete
+                          </button>
+
+                        </div>
 
                       </td>
 
@@ -856,6 +1018,7 @@ const handleUpdateProduct = async (
             </div>
 
           </div>
+
         )}
 
       </section>
