@@ -13,7 +13,10 @@ const router = Router();
 // Create a new order
 // ========================================
 
-router.post("/", async (req: Request, res: Response) => {
+router.post(
+  "/",
+  authenticate,
+  async (req: AuthenticatedRequest, res: Response) => {
   try {
     const {
   customer,
@@ -47,7 +50,12 @@ router.post("/", async (req: Request, res: Response) => {
         message: "Order must contain at least one product",
       });
     }
-
+    if (!req.user) {
+  return res.status(401).json({
+    success: false,
+    message: "Authentication required",
+  });
+}
     // Create order and update stock atomically
     const order = await prisma.$transaction(async (tx) => {
       const orderItems: {
@@ -111,6 +119,8 @@ router.post("/", async (req: Request, res: Response) => {
           state: customer.state,
           pincode: customer.pincode,
 
+          userId: req.user?.userId,
+
           subtotal,
           shipping,
           total,
@@ -152,6 +162,55 @@ router.post("/", async (req: Request, res: Response) => {
     });
   }
 });
+
+// ========================================
+// GET /api/orders/my-orders
+// Get orders belonging to logged-in customer
+// ========================================
+
+router.get(
+  "/my-orders",
+  authenticate,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message: "Authentication required",
+        });
+      }
+
+      const orders = await prisma.order.findMany({
+        where: {
+          userId: req.user.userId,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        include: {
+          items: {
+            include: {
+              product: true,
+            },
+          },
+        },
+      });
+
+      res.status(200).json({
+        success: true,
+        count: orders.length,
+        orders,
+      });
+    } catch (error) {
+      console.error("Error fetching customer orders:", error);
+
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch your orders",
+      });
+    }
+  }
+);
 
 // ========================================
 // GET /api/orders
@@ -198,47 +257,70 @@ router.get(
 // ========================================
 // GET /api/orders/:id
 // Get a single order
+// Admin: any order
+// Customer: only their own order
 // ========================================
 
-router.get("/:id", async (req: Request, res: Response) => {
-  try {
-    const order = await prisma.order.findUnique({
-      where: {
-        id: req.params.id,
-      },
+router.get(
+  "/:id",
+  authenticate,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message: "Authentication required",
+        });
+      }
 
-      include: {
-        items: {
-          include: {
-            product: true,
+      const order = await prisma.order.findUnique({
+        where: {
+          id: req.params.id,
+        },
+        include: {
+          items: {
+            include: {
+              product: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    if (!order) {
-      return res.status(404).json({
+      if (!order) {
+        return res.status(404).json({
+          success: false,
+          message: "Order not found",
+        });
+      }
+
+      // Customers can only view their own orders
+      if (
+        req.user.role !== "ADMIN" &&
+        order.userId !== req.user.userId
+      ) {
+        return res.status(403).json({
+          success: false,
+          message: "You are not authorized to view this order",
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        order,
+      });
+    } catch (error) {
+      console.error(
+        "Error fetching order:",
+        error
+      );
+
+      res.status(500).json({
         success: false,
-        message: "Order not found",
+        message: "Failed to fetch order",
       });
     }
-
-    res.status(200).json({
-      success: true,
-      order,
-    });
-  } catch (error) {
-    console.error(
-      "Error fetching order:",
-      error
-    );
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch order",
-    });
   }
-});
+);
 
 // ========================================
 // PATCH /api/orders/:id/status
