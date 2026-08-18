@@ -15,6 +15,8 @@ model User {
   role      UserRole @default(CUSTOMER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  orders    Order[]
 }
 
 enum UserRole {
@@ -44,8 +46,7 @@ model Product {
 }
 
 model Order {
-  id            String      @id @default(cuid())
-
+  id            String        @id @default(cuid())
   customerName  String
   email         String
   phone         String
@@ -53,18 +54,18 @@ model Order {
   city          String
   state         String
   pincode       String
-
   subtotal      Float
   shipping      Float
   total         Float
-
-  paymentMethod String @default("COD")
-
-  status        OrderStatus  @default(PENDING)
+  paymentMethod String        @default("COD")
+  status        OrderStatus   @default(PENDING)
   paymentStatus PaymentStatus @default(PENDING)
 
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  userId        String?
+  user          User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   items         OrderItem[]
 }
