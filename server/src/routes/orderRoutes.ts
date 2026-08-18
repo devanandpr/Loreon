@@ -1,5 +1,10 @@
 import { Router, Request, Response } from "express";
 import prisma from "../lib/prisma";
+import {
+  authenticate,
+  requireAdmin,
+  AuthenticatedRequest,
+} from "../middleware/authMiddleware";
 
 const router = Router();
 
@@ -45,7 +50,11 @@ router.post("/", async (req: Request, res: Response) => {
 
     // Create order and update stock atomically
     const order = await prisma.$transaction(async (tx) => {
-      const orderItems = [];
+      const orderItems: {
+  productId: string;
+  quantity: number;
+  price: number;
+}[] = [];
 
       for (const item of items) {
         const product = await tx.product.findUnique({
@@ -149,7 +158,11 @@ router.post("/", async (req: Request, res: Response) => {
 // Get all orders
 // ========================================
 
-router.get("/", async (_req: Request, res: Response) => {
+router.get(
+  "/",
+  authenticate,
+  requireAdmin,
+  async (_req: AuthenticatedRequest, res: Response) => {
   try {
     const orders = await prisma.order.findMany({
       orderBy: {
@@ -234,7 +247,9 @@ router.get("/:id", async (req: Request, res: Response) => {
 
 router.patch(
   "/:id/status",
-  async (req: Request, res: Response) => {
+  authenticate,
+  requireAdmin,
+  async (req: AuthenticatedRequest, res: Response) => {
     try {
       const { status } = req.body;
 
