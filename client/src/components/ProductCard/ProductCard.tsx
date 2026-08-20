@@ -105,14 +105,14 @@ export default function ProductCard({ product }: Props) {
 
      <button
       onClick={() => addToCart(product)}
-      disabled={product.stock === 0}
+      disabled={product.stock <= 0}
       className={`mt-6 w-full rounded-xl py-3 font-semibold transition ${
-      product.stock === 0
+      product.stock <= 0
       ? "bg-zinc-600 text-zinc-300 cursor-not-allowed"
       : "bg-white text-black hover:bg-zinc-200"
       }`}
     >
-      {product.stock === 0 ? "Out Of Stock" : "Add to Cart"}
+      {product.stock <= 0 ? "Out Of Stock" : "Add to Cart"}
     </button>
 
       </div>

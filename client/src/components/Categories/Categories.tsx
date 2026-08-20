@@ -1,41 +1,58 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { FiArrowRight } from "react-icons/fi";
+import { useEffect, useState } from "react";
 
-const categories = [
-  {
-    name: "Electronics",
-    products: "120+ Products",
-    image: "/images/categories/electronics.png",
-  },
-  {
-    name: "Fashion",
-    products: "250+ Products",
-    image: "/images/categories/fashion.png",
-  },
-  {
-    name: "Home & Living",
-    products: "90+ Products",
-    image: "/images/categories/home.png",
-  },
-  {
-    name: "Beauty",
-    products: "75+ Products",
-    image: "/images/categories/beauty.png",
-  },
-  {
-    name: "Sports",
-    products: "60+ Products",
-    image: "/images/categories/sports.png",
-  },
-  {
-    name: "Accessories",
-    products: "150+ Products",
-    image: "/images/categories/accessories.png",
-  },
-];
+import { getProducts } from "@/lib/api";
+import type { Product } from "@/types/product";
+
+const categoryImages: Record<string, string> = {
+  Electronics: "/images/categories/electronics.png",
+  Fashion: "/images/categories/fashion.png",
+  "Home & Living": "/images/categories/home.png",
+  Beauty: "/images/categories/beauty.png",
+  Sports: "/images/categories/sports.png",
+  Accessories: "/images/categories/accessories.png",
+};
 
 export default function Categories() {
+  const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    async function fetchProducts() {
+      try {
+        const data = await getProducts();
+        setProducts(data.products);
+      } catch (error) {
+        console.error("Failed to fetch products:", error);
+      }
+    }
+
+    fetchProducts();
+  }, []);
+
+  const categoryCounts = products.reduce(
+    (counts: Record<string, number>, product) => {
+      counts[product.category] =
+        (counts[product.category] || 0) + 1;
+
+      return counts;
+    },
+    {}
+  );
+
+  const categories = Object.keys(categoryCounts).map(
+    (name) => ({
+      name,
+      count: categoryCounts[name],
+      image:
+        categoryImages[name] ||
+        "/images/categories/accessories.png",
+    })
+  );
+
   return (
     <section
       id="categories"
@@ -55,7 +72,8 @@ export default function Categories() {
             </h2>
 
             <p className="mt-4 text-zinc-400 max-w-xl">
-              Find everything you need, from everyday essentials to modern luxuries.
+              Find everything you need, from everyday
+              essentials to modern luxuries.
             </p>
           </div>
 
@@ -75,7 +93,9 @@ export default function Categories() {
 
             <Link
               key={category.name}
-              href="/products"
+              href={`/products?category=${encodeURIComponent(
+                category.name
+              )}`}
               className="group relative overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-900"
             >
 
@@ -99,7 +119,10 @@ export default function Categories() {
                   <div className="mt-3 flex items-center justify-between">
 
                     <span className="text-zinc-300">
-                      {category.products}
+                      {category.count}{" "}
+                      {category.count === 1
+                        ? "Product"
+                        : "Products"}
                     </span>
 
                     <div className="rounded-full bg-white p-3 text-black transition group-hover:translate-x-1">

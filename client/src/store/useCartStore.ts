@@ -42,7 +42,24 @@ export const useCartStore = create<CartStore>()(
             (item) => item.id === product.id
           );
 
+          // Product is out of stock
+          if (product.stock <= 0) {
+            return {
+              cart: state.cart,
+              isOpen: true,
+            };
+          }
+
+          // Product already exists in cart
           if (existing) {
+            // Don't allow quantity above stock
+            if (existing.quantity >= product.stock) {
+              return {
+                cart: state.cart,
+                isOpen: true,
+              };
+            }
+
             return {
               cart: state.cart.map((item) =>
                 item.id === product.id
@@ -56,6 +73,7 @@ export const useCartStore = create<CartStore>()(
             };
           }
 
+          // Add new product
           return {
             cart: [
               ...state.cart,
@@ -79,19 +97,27 @@ export const useCartStore = create<CartStore>()(
         set((state) => ({
           cart: state.cart
             .map((item) => {
-              if (item.id === id) {
-                const newQuantity =
-                  item.quantity + delta;
-
-                return newQuantity > 0
-                  ? {
-                      ...item,
-                      quantity: newQuantity,
-                    }
-                  : null;
+              if (item.id !== id) {
+                return item;
               }
 
-              return item;
+              const newQuantity =
+                item.quantity + delta;
+
+              // Remove item if quantity reaches zero
+              if (newQuantity <= 0) {
+                return null;
+              }
+
+              // Don't exceed available stock
+              if (newQuantity > item.stock) {
+                return item;
+              }
+
+              return {
+                ...item,
+                quantity: newQuantity,
+              };
             })
             .filter(Boolean) as CartItem[],
         })),
@@ -104,6 +130,7 @@ export const useCartStore = create<CartStore>()(
 
     {
       name: "loreon-cart",
+
       partialize: (state) => ({
         cart: state.cart,
       }),

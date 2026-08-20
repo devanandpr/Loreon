@@ -3,22 +3,113 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import Navbar from "@/components/Navbar/Navbar";
 import Footer from "@/components/Footer/Footer";
 import CartDrawer from "@/components/cartdrawer/CartDrawer";
 import ProductCard from "@/components/ProductCard/ProductCard";
 
-import { PRODUCTS } from "@/data/products";
+import { getProduct, getProducts } from "@/lib/api";
+import type { Product } from "@/types/product";
 import { useCartStore } from "@/store/useCartStore";
 
 export default function ProductPage() {
   const params = useParams();
   const { addToCart } = useCartStore();
 
-  const product = PRODUCTS.find(
-    (p) => p.id === String(params.id)
-  );
+  const [product, setProduct] = useState<Product | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const productId = String(params.id);
+
+  useEffect(() => {
+    async function fetchProductData() {
+      try {
+        setLoading(true);
+        setError("");
+
+        // Get the selected product from backend
+        const productData = await getProduct(productId);
+
+        if (!productData.product) {
+          setProduct(null);
+          return;
+        }
+
+        const currentProduct: Product = productData.product;
+
+        setProduct(currentProduct);
+
+        // Get all products for related products
+        const productsData = await getProducts();
+
+        const related = productsData.products
+          .filter(
+            (item: Product) =>
+              item.category === currentProduct.category &&
+              item.id !== currentProduct.id
+          )
+          .slice(0, 4);
+
+        setRelatedProducts(related);
+      } catch (error) {
+        console.error("Failed to fetch product:", error);
+        setError("Unable to load product.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProductData();
+  }, [productId]);
+
+  // Loading state
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-black text-white">
+        <Navbar />
+
+        <section className="min-h-[70vh] flex items-center justify-center">
+          <p className="text-zinc-400 text-lg">
+            Loading product...
+          </p>
+        </section>
+
+        <Footer />
+      </main>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <main className="min-h-screen bg-black text-white">
+        <Navbar />
+
+        <section className="min-h-[70vh] flex flex-col items-center justify-center px-6 text-center">
+          <h1 className="text-4xl font-bold mb-4">
+            Something Went Wrong
+          </h1>
+
+          <p className="text-red-400 mb-8">
+            {error}
+          </p>
+
+          <Link
+            href="/products"
+            className="bg-white text-black px-6 py-3 rounded-xl font-semibold hover:bg-zinc-200 transition"
+          >
+            Back To Products
+          </Link>
+        </section>
+
+        <Footer />
+      </main>
+    );
+  }
 
   // Product not found
   if (!product) {
@@ -47,12 +138,6 @@ export default function ProductPage() {
       </main>
     );
   }
-
-  const relatedProducts = PRODUCTS.filter(
-    (item) =>
-      item.category === product.category &&
-      item.id !== product.id
-  ).slice(0, 4);
 
   const isOutOfStock = product.stock <= 0;
 
@@ -94,7 +179,7 @@ export default function ProductPage() {
         {/* Product */}
         <div className="grid lg:grid-cols-2 gap-20">
 
-          {/* ================= LEFT ================= */}
+          {/* LEFT */}
           <div>
 
             <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-10">
@@ -116,7 +201,7 @@ export default function ProductPage() {
 
           </div>
 
-          {/* ================= RIGHT ================= */}
+          {/* RIGHT */}
           <div>
 
             {/* Badge */}
@@ -189,32 +274,33 @@ export default function ProductPage() {
             </div>
 
             {/* Features */}
-            {product.features.length > 0 && (
-              <div className="mt-10">
+            {product.features &&
+              product.features.length > 0 && (
+                <div className="mt-10">
 
-                <h3 className="font-semibold text-xl mb-4">
-                  Features
-                </h3>
+                  <h3 className="font-semibold text-xl mb-4">
+                    Features
+                  </h3>
 
-                <ul className="space-y-3">
+                  <ul className="space-y-3">
 
-                  {product.features.map((feature) => (
-                    <li
-                      key={feature}
-                      className="text-zinc-400 flex gap-3"
-                    >
-                      <span className="text-green-500">
-                        ✔
-                      </span>
+                    {product.features.map((feature) => (
+                      <li
+                        key={feature}
+                        className="text-zinc-400 flex gap-3"
+                      >
+                        <span className="text-green-500">
+                          ✔
+                        </span>
 
-                      {feature}
-                    </li>
-                  ))}
+                        {feature}
+                      </li>
+                    ))}
 
-                </ul>
+                  </ul>
 
-              </div>
-            )}
+                </div>
+              )}
 
             {/* Colors */}
             {product.colors &&
@@ -266,7 +352,7 @@ export default function ProductPage() {
                 </div>
               )}
 
-            {/* ================= BUTTONS ================= */}
+            {/* Buttons */}
             <div className="flex gap-4 mt-12">
 
               <button
@@ -300,7 +386,7 @@ export default function ProductPage() {
 
         </div>
 
-        {/* ================= RELATED PRODUCTS ================= */}
+        {/* RELATED PRODUCTS */}
         {relatedProducts.length > 0 && (
           <section className="mt-24">
 

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
+import { useAuthStore } from "@/store/useAuthStore";
+
 interface Product {
   id: string;
   name: string;
@@ -40,6 +42,8 @@ export default function OrderSuccessPage() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get("orderId");
 
+  const { token } = useAuthStore();
+
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -51,10 +55,23 @@ export default function OrderSuccessPage() {
       return;
     }
 
+    if (!token) {
+      setError("Authentication required. Please login again.");
+      setLoading(false);
+      return;
+    }
+
     const fetchOrder = async () => {
       try {
         const response = await fetch(
-          `http://localhost:5000/api/orders/${orderId}`
+          `http://localhost:5000/api/orders/${orderId}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
 
         const data = await response.json();
@@ -80,13 +97,18 @@ export default function OrderSuccessPage() {
     };
 
     fetchOrder();
-  }, [orderId]);
+  }, [orderId, token]);
+
+  /* ================= LOADING ================= */
 
   if (loading) {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
         <div className="text-center">
-          <div className="text-4xl mb-4">⏳</div>
+
+          <div className="text-4xl mb-4">
+            ⏳
+          </div>
 
           <h1 className="text-2xl font-bold">
             Loading Your Order
@@ -95,20 +117,26 @@ export default function OrderSuccessPage() {
           <p className="text-zinc-500 mt-2">
             Please wait...
           </p>
+
         </div>
       </main>
     );
   }
 
+  /* ================= ERROR ================= */
+
   if (error || !order) {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
+
         <div className="max-w-xl w-full text-center">
 
           <div className="mx-auto w-20 h-20 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center">
+
             <span className="text-4xl text-red-500">
               !
             </span>
+
           </div>
 
           <h1 className="text-3xl font-bold mt-8">
@@ -127,9 +155,12 @@ export default function OrderSuccessPage() {
           </Link>
 
         </div>
+
       </main>
     );
   }
+
+  /* ================= SUCCESS ================= */
 
   return (
     <main className="min-h-screen bg-black text-white">
@@ -137,6 +168,7 @@ export default function OrderSuccessPage() {
       {/* Header */}
 
       <header className="border-b border-zinc-800">
+
         <div className="max-w-7xl mx-auto px-6 py-6">
 
           <Link
@@ -147,6 +179,7 @@ export default function OrderSuccessPage() {
           </Link>
 
         </div>
+
       </header>
 
       {/* Main */}
@@ -158,9 +191,11 @@ export default function OrderSuccessPage() {
         <div className="text-center">
 
           <div className="mx-auto w-20 h-20 rounded-full bg-green-500/10 border border-green-500/30 flex items-center justify-center">
+
             <span className="text-4xl text-green-500">
               ✓
             </span>
+
           </div>
 
           <p className="uppercase tracking-[0.3em] text-zinc-500 text-sm mt-8">
@@ -244,11 +279,17 @@ export default function OrderSuccessPage() {
             </h2>
 
             <p className="text-zinc-300 leading-relaxed">
+
               {order.address}
+
               <br />
+
               {order.city}, {order.state}
+
               <br />
+
               PIN: {order.pincode}
+
             </p>
 
           </div>
@@ -299,7 +340,8 @@ export default function OrderSuccessPage() {
                 </div>
 
                 <p className="font-semibold">
-                  ${(item.price * item.quantity).toFixed(2)}
+                  $
+                  {(item.price * item.quantity).toFixed(2)}
                 </p>
 
               </div>
@@ -321,6 +363,7 @@ export default function OrderSuccessPage() {
           <div className="space-y-4">
 
             <div className="flex justify-between text-zinc-400">
+
               <span>
                 Subtotal
               </span>
@@ -328,9 +371,11 @@ export default function OrderSuccessPage() {
               <span>
                 ${order.subtotal.toFixed(2)}
               </span>
+
             </div>
 
             <div className="flex justify-between text-zinc-400">
+
               <span>
                 Shipping
               </span>
@@ -340,6 +385,7 @@ export default function OrderSuccessPage() {
                   ? "FREE"
                   : `$${order.shipping.toFixed(2)}`}
               </span>
+
             </div>
 
             <div className="border-t border-zinc-800 pt-4 flex justify-between text-xl font-bold">

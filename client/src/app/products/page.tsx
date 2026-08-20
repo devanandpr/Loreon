@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import Navbar from "@/components/Navbar/Navbar";
 import Footer from "@/components/Footer/Footer";
@@ -9,9 +10,12 @@ import { getProducts } from "@/lib/api";
 import type { Product } from "@/types/product";
 
 export default function ProductsPage() {
+  const searchParams = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("All");
+  const [category, setCategory] = useState(
+  searchParams.get("category") || "All"
+  );  
   const [sort, setSort] = useState("featured");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

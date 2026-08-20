@@ -19,7 +19,7 @@ export interface Product {
 
   stock: number;
 
-  features: string[];
+  features?: string[];
 
   colors?: string[];
 
