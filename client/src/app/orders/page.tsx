@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useAuthStore } from "@/store/useAuthStore";
 
 interface Product {
   id: string;
@@ -28,16 +29,31 @@ interface Order {
 }
 
 export default function OrdersPage() {
+  const { token, user } = useAuthStore();
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchOrders = async () => {
+      if (!token) {
+        setError("Please login to view your orders.");
+        setLoading(false);
+        return;
+      }
+
       try {
         const response = await fetch(
-          "http://localhost:5000/api/orders"
-        );
+  "http://localhost:5000/api/orders/my-orders",
+  {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  }
+);  
 
         const data = await response.json();
 
@@ -47,7 +63,7 @@ export default function OrdersPage() {
           );
         }
 
-        setOrders(data.orders);
+        setOrders(data.orders || []);
       } catch (error) {
         console.error("Orders fetch error:", error);
 
@@ -62,7 +78,7 @@ export default function OrdersPage() {
     };
 
     fetchOrders();
-  }, []);
+  }, [token]);
 
   if (loading) {
     return (
@@ -82,11 +98,33 @@ export default function OrdersPage() {
     );
   }
 
+  if (!token) {
+    return (
+      <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
+        <div className="text-center max-w-md">
+          <h1 className="text-3xl font-bold">
+            Login Required
+          </h1>
+
+          <p className="text-zinc-400 mt-4">
+            Please login to view your orders.
+          </p>
+
+          <Link
+            href="/login"
+            className="inline-block mt-8 bg-white text-black px-6 py-3 rounded-xl font-semibold hover:bg-zinc-200 transition"
+          >
+            Login
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
   if (error) {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
         <div className="text-center max-w-md">
-
           <h1 className="text-3xl font-bold">
             Unable to Load Orders
           </h1>
@@ -97,11 +135,10 @@ export default function OrdersPage() {
 
           <Link
             href="/products"
-            className="inline-block mt-8 bg-white text-black px-6 py-3 rounded-xl font-semibold"
+            className="inline-block mt-8 bg-white text-black px-6 py-3 rounded-xl font-semibold hover:bg-zinc-200 transition"
           >
             Continue Shopping
           </Link>
-
         </div>
       </main>
     );
@@ -113,7 +150,7 @@ export default function OrdersPage() {
       {/* Header */}
 
       <header className="border-b border-zinc-800">
-        <div className="max-w-7xl mx-auto px-6 py-6">
+        <div className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
 
           <Link
             href="/"
@@ -121,6 +158,10 @@ export default function OrdersPage() {
           >
             LOREON
           </Link>
+
+          <div className="text-sm text-zinc-400">
+            {user?.name}
+          </div>
 
         </div>
       </header>
@@ -130,7 +171,6 @@ export default function OrdersPage() {
       <section className="max-w-5xl mx-auto px-6 py-12">
 
         <div className="mb-10">
-
           <p className="uppercase tracking-[0.3em] text-zinc-500 text-sm">
             Account
           </p>
@@ -142,7 +182,6 @@ export default function OrdersPage() {
           <p className="text-zinc-400 mt-3">
             View your previous Loreon orders.
           </p>
-
         </div>
 
         {/* No Orders */}
@@ -182,7 +221,6 @@ export default function OrdersPage() {
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
 
                   <div>
-
                     <p className="text-sm text-zinc-500">
                       Order ID
                     </p>
@@ -190,11 +228,9 @@ export default function OrdersPage() {
                     <p className="font-mono text-sm mt-1 break-all">
                       {order.id}
                     </p>
-
                   </div>
 
                   <div className="text-left md:text-right">
-
                     <p className="text-sm text-zinc-500">
                       Date
                     </p>
@@ -208,7 +244,6 @@ export default function OrdersPage() {
                         year: "numeric",
                       })}
                     </p>
-
                   </div>
 
                 </div>
@@ -282,7 +317,6 @@ export default function OrdersPage() {
                   <div className="flex items-center gap-6">
 
                     <div>
-
                       <p className="text-sm text-zinc-500">
                         Total
                       </p>
@@ -290,7 +324,6 @@ export default function OrdersPage() {
                       <p className="text-xl font-bold">
                         ₹{order.total.toFixed(2)}
                       </p>
-
                     </div>
 
                     <Link
@@ -309,7 +342,6 @@ export default function OrdersPage() {
             ))}
 
           </div>
-
         )}
 
       </section>
