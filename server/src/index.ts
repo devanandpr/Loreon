@@ -5,6 +5,7 @@ import morgan from "morgan";
 import dotenv from "dotenv";
 import orderRoutes from "./routes/orderRoutes";
 import authRoutes from "./routes/authRoutes";
+import adminRoutes from "./routes/adminRoutes";
 import {
   authenticate,
   requireAdmin,
@@ -69,7 +70,8 @@ app.use("/api/orders", orderRoutes);
 // Authentication Routes
 app.use("/api/auth", authRoutes);
 
-
+// Admin Routes
+app.use("/api/admin",adminRoutes);
 
 // Start Server
 app.listen(PORT, () => {

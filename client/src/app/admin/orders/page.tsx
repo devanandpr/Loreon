@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useAuthStore } from "@/store/useAuthStore";
 
 interface Product {
   id: string;
@@ -40,49 +41,76 @@ const ORDER_STATUSES = [
 ];
 
 export default function AdminOrdersPage() {
+  const { token, user } = useAuthStore();
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
+  // ========================================
+  // GET ORDERS
+  // ========================================
+
   useEffect(() => {
-    fetchOrders();
-  }, []);
-
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
-
-      const response = await fetch(
-        "http://localhost:5000/api/orders"
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message || "Failed to fetch orders"
-        );
-      }
-
-      setOrders(data.orders);
-    } catch (error) {
-      console.error("Admin orders error:", error);
-
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Unable to load orders"
-      );
-    } finally {
+    if (!token || user?.role !== "ADMIN") {
       setLoading(false);
+      return;
     }
-  };
+
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const response = await fetch(
+          "http://localhost:5000/api/orders",
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.message || "Failed to fetch orders"
+          );
+        }
+
+        setOrders(data.orders || []);
+      } catch (error) {
+        console.error("Admin orders error:", error);
+
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Unable to load orders"
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, [token, user]);
+
+  // ========================================
+  // UPDATE ORDER STATUS
+  // ========================================
 
   const updateStatus = async (
     orderId: string,
     status: string
   ) => {
+    if (!token) {
+      alert("Authentication required. Please login again.");
+      return;
+    }
+
     try {
       setUpdatingId(orderId);
 
@@ -92,6 +120,7 @@ export default function AdminOrdersPage() {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             status,
@@ -112,7 +141,7 @@ export default function AdminOrdersPage() {
           order.id === orderId
             ? {
                 ...order,
-                status: data.order.status,
+                status: data.order?.status || status,
               }
             : order
         )
@@ -130,28 +159,93 @@ export default function AdminOrdersPage() {
     }
   };
 
+  // ========================================
+  // LOGIN CHECK
+  // ========================================
+
+  if (!token || !user) {
+    return (
+      <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
+        <div className="text-center max-w-md">
+          <h1 className="text-3xl font-bold">
+            Login Required
+          </h1>
+
+          <p className="text-zinc-500 mt-4">
+            Please login to access the admin orders page.
+          </p>
+
+          <Link
+            href="/login"
+            className="inline-block mt-6 bg-white text-black px-6 py-3 rounded-xl font-semibold hover:bg-zinc-200 transition"
+          >
+            Login
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  // ========================================
+  // ADMIN CHECK
+  // ========================================
+
+  if (user.role !== "ADMIN") {
+    return (
+      <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
+        <div className="text-center max-w-md">
+          <h1 className="text-3xl font-bold">
+            Access Denied
+          </h1>
+
+          <p className="text-zinc-500 mt-4">
+            You do not have permission to access the admin
+            orders page.
+          </p>
+
+          <Link
+            href="/"
+            className="inline-block mt-6 bg-white text-black px-6 py-3 rounded-xl font-semibold hover:bg-zinc-200 transition"
+          >
+            Back To Store
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  // ========================================
+  // LOADING
+  // ========================================
+
   if (loading) {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="text-center">
-          <div className="text-4xl mb-4">⏳</div>
+          <div className="text-4xl mb-4">
+            ⏳
+          </div>
 
           <h1 className="text-2xl font-bold">
             Loading Orders
           </h1>
 
           <p className="text-zinc-500 mt-2">
-            Please wait...
+            Fetching customer orders...
           </p>
         </div>
       </main>
     );
   }
 
+  // ========================================
+  // ERROR
+  // ========================================
+
   if (error) {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
-        <div className="text-center">
+        <div className="text-center max-w-lg">
           <h1 className="text-3xl font-bold">
             Unable to Load Orders
           </h1>
@@ -160,9 +254,14 @@ export default function AdminOrdersPage() {
             {error}
           </p>
 
+          <p className="text-zinc-500 text-sm mt-4">
+            Make sure your backend server is running and that
+            your account has ADMIN privileges.
+          </p>
+
           <button
-            onClick={fetchOrders}
-            className="mt-6 bg-white text-black px-6 py-3 rounded-xl font-semibold"
+            onClick={() => window.location.reload()}
+            className="mt-6 bg-white text-black px-6 py-3 rounded-xl font-semibold hover:bg-zinc-200 transition"
           >
             Try Again
           </button>
@@ -170,6 +269,28 @@ export default function AdminOrdersPage() {
       </main>
     );
   }
+
+  // ========================================
+  // STATISTICS
+  // ========================================
+
+  const totalOrders = orders.length;
+
+  const pendingOrders = orders.filter(
+    (order) => order.status === "PENDING"
+  ).length;
+
+  const processingOrders = orders.filter(
+    (order) => order.status === "PROCESSING"
+  ).length;
+
+  const deliveredOrders = orders.filter(
+    (order) => order.status === "DELIVERED"
+  ).length;
+
+  // ========================================
+  // PAGE
+  // ========================================
 
   return (
     <main className="min-h-screen bg-black text-white">
@@ -186,16 +307,40 @@ export default function AdminOrdersPage() {
             LOREON
           </Link>
 
-          <span className="text-zinc-500">
-            Admin
-          </span>
+          <div className="flex items-center gap-6">
+
+            <Link
+              href="/admin"
+              className="text-zinc-400 hover:text-white transition"
+            >
+              Dashboard
+            </Link>
+
+            <Link
+              href="/admin/products"
+              className="text-zinc-400 hover:text-white transition"
+            >
+              Products
+            </Link>
+
+            <span className="text-white font-medium">
+              Orders
+            </span>
+
+            <span className="text-zinc-500">
+              Admin
+            </span>
+
+          </div>
 
         </div>
       </header>
 
-      {/* Dashboard */}
+      {/* Main */}
 
       <section className="max-w-7xl mx-auto px-6 py-12">
+
+        {/* Page Heading */}
 
         <div className="mb-10">
 
@@ -213,63 +358,64 @@ export default function AdminOrdersPage() {
 
         </div>
 
-        {/* Stats */}
+        {/* Statistics */}
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
 
+          {/* Total Orders */}
+
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+
             <p className="text-zinc-500 text-sm">
               Total Orders
             </p>
 
             <p className="text-3xl font-bold mt-2">
-              {orders.length}
+              {totalOrders}
             </p>
+
           </div>
 
+          {/* Pending */}
+
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+
             <p className="text-zinc-500 text-sm">
               Pending
             </p>
 
-            <p className="text-3xl font-bold mt-2">
-              {
-                orders.filter(
-                  (order) =>
-                    order.status === "PENDING"
-                ).length
-              }
+            <p className="text-3xl font-bold mt-2 text-yellow-400">
+              {pendingOrders}
             </p>
+
           </div>
 
+          {/* Processing */}
+
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+
             <p className="text-zinc-500 text-sm">
               Processing
             </p>
 
             <p className="text-3xl font-bold mt-2">
-              {
-                orders.filter(
-                  (order) =>
-                    order.status === "PROCESSING"
-                ).length
-              }
+              {processingOrders}
             </p>
+
           </div>
 
+          {/* Delivered */}
+
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+
             <p className="text-zinc-500 text-sm">
               Delivered
             </p>
 
-            <p className="text-3xl font-bold mt-2">
-              {
-                orders.filter(
-                  (order) =>
-                    order.status === "DELIVERED"
-                ).length
-              }
+            <p className="text-3xl font-bold mt-2 text-green-400">
+              {deliveredOrders}
             </p>
+
           </div>
 
         </div>
@@ -277,6 +423,7 @@ export default function AdminOrdersPage() {
         {/* Orders */}
 
         {orders.length === 0 ? (
+
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-12 text-center">
 
             <h2 className="text-2xl font-bold">
@@ -284,10 +431,11 @@ export default function AdminOrdersPage() {
             </h2>
 
             <p className="text-zinc-500 mt-3">
-              There are currently no orders.
+              There are currently no customer orders.
             </p>
 
           </div>
+
         ) : (
 
           <div className="space-y-5">
@@ -298,6 +446,8 @@ export default function AdminOrdersPage() {
                 key={order.id}
                 className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6"
               >
+
+                {/* Order Header */}
 
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
 
@@ -321,9 +471,13 @@ export default function AdminOrdersPage() {
                       {order.phone}
                     </p>
 
+                    <p className="text-sm text-zinc-500">
+                      {order.city}, {order.state}
+                    </p>
+
                   </div>
 
-                  {/* Order */}
+                  {/* Order Information */}
 
                   <div>
 
@@ -386,17 +540,27 @@ export default function AdminOrdersPage() {
                       }
                       className="bg-black border border-zinc-700 rounded-xl px-4 py-3 text-white outline-none focus:border-white disabled:opacity-50"
                     >
+
                       {ORDER_STATUSES.map(
                         (status) => (
+
                           <option
                             key={status}
                             value={status}
                           >
                             {status}
                           </option>
+
                         )
                       )}
+
                     </select>
+
+                    {updatingId === order.id && (
+                      <p className="text-xs text-zinc-500 mt-2">
+                        Updating...
+                      </p>
+                    )}
 
                   </div>
 
@@ -412,21 +576,41 @@ export default function AdminOrdersPage() {
 
                   <div className="flex flex-wrap gap-3">
 
-                    {order.items.map(
-                      (item) => (
-                        <div
-                          key={item.id}
-                          className="bg-black border border-zinc-800 rounded-xl px-4 py-3"
-                        >
-                          <p className="text-sm font-semibold">
-                            {item.product.name}
-                          </p>
+                    {order.items &&
+                    order.items.length > 0 ? (
 
-                          <p className="text-xs text-zinc-500 mt-1">
-                            Qty: {item.quantity}
-                          </p>
-                        </div>
+                      order.items.map(
+                        (item) => (
+
+                          <div
+                            key={item.id}
+                            className="bg-black border border-zinc-800 rounded-xl px-4 py-3"
+                          >
+
+                            <p className="text-sm font-semibold">
+                              {item.product.name}
+                            </p>
+
+                            <p className="text-xs text-zinc-500 mt-1">
+                              Qty: {item.quantity}
+                            </p>
+
+                            <p className="text-xs text-zinc-500">
+                              Price: ₹
+                              {item.price.toFixed(2)}
+                            </p>
+
+                          </div>
+
+                        )
                       )
+
+                    ) : (
+
+                      <p className="text-zinc-500 text-sm">
+                        No product information available.
+                      </p>
+
                     )}
 
                   </div>

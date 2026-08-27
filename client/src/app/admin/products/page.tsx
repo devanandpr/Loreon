@@ -1,7 +1,9 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useAuthStore } from "@/store/useAuthStore";
 
 interface Product {
   id: string;
@@ -57,6 +59,8 @@ const emptyForm: ProductForm = {
 };
 
 export default function AdminProductsPage() {
+  const { token, user } = useAuthStore();
+
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -95,7 +99,7 @@ export default function AdminProductsPage() {
         );
       }
 
-      setProducts(data.products);
+      setProducts(data.products || []);
     } catch (error) {
       console.error("Error fetching products:", error);
 
@@ -118,6 +122,11 @@ export default function AdminProductsPage() {
   ) => {
     e.preventDefault();
 
+    if (!token) {
+      alert("Authentication required. Please login again.");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
 
@@ -127,6 +136,7 @@ export default function AdminProductsPage() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             id: form.id,
@@ -218,6 +228,11 @@ export default function AdminProductsPage() {
 
     if (!editingProductId) return;
 
+    if (!token) {
+      alert("Authentication required. Please login again.");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
 
@@ -227,6 +242,7 @@ export default function AdminProductsPage() {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             slug: form.slug,
@@ -283,6 +299,11 @@ export default function AdminProductsPage() {
   const handleDeleteProduct = async (
     product: Product
   ) => {
+    if (!token) {
+      alert("Authentication required. Please login again.");
+      return;
+    }
+
     const confirmed = window.confirm(
       `Are you sure you want to delete "${product.name}"?`
     );
@@ -294,6 +315,9 @@ export default function AdminProductsPage() {
         `http://localhost:5000/api/products/${product.id}`,
         {
           method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
 
@@ -320,6 +344,56 @@ export default function AdminProductsPage() {
   };
 
   // ========================================
+  // ACCESS CHECK
+  // ========================================
+
+  if (!token || !user) {
+    return (
+      <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold">
+            Login Required
+          </h1>
+
+          <p className="text-zinc-500 mt-3">
+            Please login to access the admin panel.
+          </p>
+
+          <Link
+            href="/login"
+            className="inline-block mt-6 bg-white text-black px-6 py-3 rounded-xl font-semibold"
+          >
+            Login
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  if (user.role !== "ADMIN") {
+    return (
+      <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
+        <div className="text-center max-w-md">
+          <h1 className="text-3xl font-bold">
+            Access Denied
+          </h1>
+
+          <p className="text-zinc-500 mt-3">
+            You do not have permission to access the admin products page.
+          </p>
+
+          <Link
+            href="/"
+            className="inline-block mt-6 bg-white text-black px-6 py-3 rounded-xl font-semibold"
+          >
+            Back To Store
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  // ========================================
   // LOADING
   // ========================================
 
@@ -327,7 +401,9 @@ export default function AdminProductsPage() {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="text-center">
-          <div className="text-4xl mb-4">⏳</div>
+          <div className="text-4xl mb-4">
+            ⏳
+          </div>
 
           <h1 className="text-2xl font-bold">
             Loading Products
@@ -388,6 +464,13 @@ export default function AdminProductsPage() {
           </Link>
 
           <div className="flex items-center gap-6">
+
+            <Link
+              href="/admin"
+              className="text-zinc-400 hover:text-white transition"
+            >
+              Dashboard
+            </Link>
 
             <Link
               href="/admin/orders"
@@ -634,6 +717,8 @@ export default function AdminProductsPage() {
               <input
                 required
                 type="number"
+                min="0"
+                step="0.01"
                 placeholder="Price"
                 value={form.price}
                 onChange={(e) =>
@@ -649,6 +734,8 @@ export default function AdminProductsPage() {
 
               <input
                 type="number"
+                min="0"
+                step="0.01"
                 placeholder="Original price"
                 value={form.originalPrice}
                 onChange={(e) =>
