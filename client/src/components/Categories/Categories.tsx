@@ -43,15 +43,13 @@ export default function Categories() {
     {}
   );
 
-  const categories = Object.keys(categoryCounts).map(
-    (name) => ({
-      name,
-      count: categoryCounts[name],
-      image:
-        categoryImages[name] ||
-        "/images/categories/accessories.png",
-    })
-  );
+  const categories = Object.keys(categoryCounts).map((name) => ({
+    name,
+    count: categoryCounts[name],
+    image:
+      categoryImages[name] ||
+      "/images/categories/accessories.png",
+  }));
 
   return (
     <section
@@ -60,6 +58,7 @@ export default function Categories() {
     >
       <div className="max-w-7xl mx-auto px-6">
 
+        {/* Header */}
         <div className="flex items-end justify-between mb-14">
 
           <div>
@@ -67,7 +66,7 @@ export default function Categories() {
               Shop by Category
             </span>
 
-            <h2 className="mt-3 text-4xl font-bold">
+            <h2 className="mt-3 text-4xl font-bold text-white">
               Explore Collections
             </h2>
 
@@ -79,7 +78,7 @@ export default function Categories() {
 
           <Link
             href="/products"
-            className="hidden md:flex items-center gap-2 text-white hover:text-zinc-300"
+            className="hidden md:flex items-center gap-2 text-white hover:text-zinc-300 transition"
           >
             View All
             <FiArrowRight />
@@ -87,6 +86,7 @@ export default function Categories() {
 
         </div>
 
+        {/* Categories */}
         <div className="grid gap-7 md:grid-cols-2 lg:grid-cols-3">
 
           {categories.map((category) => (
@@ -101,15 +101,20 @@ export default function Categories() {
 
               <div className="relative h-80">
 
+                {/* Category Image */}
                 <Image
                   src={category.image}
                   alt={category.name}
                   fill
+                  unoptimized
+                  priority
                   className="object-cover transition duration-700 group-hover:scale-110"
                 />
 
+                {/* Gradient Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
 
+                {/* Category Information */}
                 <div className="absolute bottom-0 left-0 right-0 p-8">
 
                   <h3 className="text-3xl font-bold text-white">

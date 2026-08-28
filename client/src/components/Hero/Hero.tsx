@@ -85,6 +85,7 @@ export default function Hero() {
             <Image
               src="/images/hero/hero.png"
               alt="Loreon Hero"
+              unoptimized
               width={700}
               height={700}
               priority
