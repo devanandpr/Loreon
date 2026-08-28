@@ -9,12 +9,14 @@ import { getProducts } from "@/lib/api";
 import type { Product } from "@/types/product";
 
 const categoryImages: Record<string, string> = {
-  Electronics: "/images/categories/electronics.png",
-  Fashion: "/images/categories/fashion.png",
-  "Home & Living": "/images/categories/home.png",
-  Beauty: "/images/categories/beauty.png",
-  Sports: "/images/categories/sports.png",
+  Audio: "/images/categories/electronics.png",
+  Cameras: "/images/categories/electronics.png",
+  Wearables: "/images/categories/electronics.png",
   Accessories: "/images/categories/accessories.png",
+  Laptops: "/images/categories/electronics.png",
+  Gaming: "/images/categories/electronics.png",
+  Shoes: "/images/categories/fashion.png",
+  Mobile: "/images/categories/electronics.png",
 };
 
 export default function Categories() {
@@ -86,7 +88,7 @@ export default function Categories() {
 
         </div>
 
-        {/* Categories */}
+        {/* Category Grid */}
         <div className="grid gap-7 md:grid-cols-2 lg:grid-cols-3">
 
           {categories.map((category) => (
@@ -107,14 +109,13 @@ export default function Categories() {
                   alt={category.name}
                   fill
                   unoptimized
-                  priority
                   className="object-cover transition duration-700 group-hover:scale-110"
                 />
 
-                {/* Gradient Overlay */}
+                {/* Dark Gradient */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
 
-                {/* Category Information */}
+                {/* Category Content */}
                 <div className="absolute bottom-0 left-0 right-0 p-8">
 
                   <h3 className="text-3xl font-bold text-white">
