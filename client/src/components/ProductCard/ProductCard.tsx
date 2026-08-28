@@ -15,7 +15,7 @@ export default function ProductCard({ product }: Props) {
   const isOutOfStock = product.stock <= 0;
 
   return (
-    <div className="group rounded-2xl bg-zinc-900 border border-zinc-800 overflow-hidden hover:border-zinc-700 transition duration-300">
+    <div className="group relative rounded-2xl bg-zinc-900 border border-zinc-800 overflow-hidden hover:border-zinc-700 transition duration-300">
 
       {/* Badge */}
       {product.badge && (
@@ -34,9 +34,11 @@ export default function ProductCard({ product }: Props) {
             src={product.image}
             alt={product.name}
             fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
             className={`object-contain p-8 group-hover:scale-105 transition duration-500 ${
               isOutOfStock ? "opacity-50" : ""
             }`}
+            priority={product.isFeatured}
           />
 
         </div>
@@ -45,10 +47,12 @@ export default function ProductCard({ product }: Props) {
       {/* Content */}
       <div className="p-5">
 
+        {/* Brand */}
         <p className="text-xs uppercase tracking-widest text-zinc-500">
           {product.brand}
         </p>
 
+        {/* Product Name */}
         <Link href={`/products/${product.id}`}>
           <h3 className="text-lg font-semibold mt-2 hover:text-zinc-300 transition">
             {product.name}
@@ -83,37 +87,41 @@ export default function ProductCard({ product }: Props) {
 
         </div>
 
+        {/* Stock */}
         <div className="mt-3">
-        {product.stock > 0 ? (
-      <span
-      className={`font-semibold ${
-        product.stock > 10
-          ? "text-green-500"
-          : "text-orange-400"
-      }`}
-    >
-      {product.stock > 10
-        ? `${product.stock} In Stock`
-        : `Only ${product.stock} Left`}
-    </span>
-  ) : (
-    <span className="font-semibold text-red-500">
-      Out Of Stock
-    </span>
-      )}
-</div>
 
-     <button
-      onClick={() => addToCart(product)}
-      disabled={product.stock <= 0}
-      className={`mt-6 w-full rounded-xl py-3 font-semibold transition ${
-      product.stock <= 0
-      ? "bg-zinc-600 text-zinc-300 cursor-not-allowed"
-      : "bg-white text-black hover:bg-zinc-200"
-      }`}
-    >
-      {product.stock <= 0 ? "Out Of Stock" : "Add to Cart"}
-    </button>
+          {product.stock > 0 ? (
+            <span
+              className={`font-semibold ${
+                product.stock > 10
+                  ? "text-green-500"
+                  : "text-orange-400"
+              }`}
+            >
+              {product.stock > 10
+                ? `${product.stock} In Stock`
+                : `Only ${product.stock} Left`}
+            </span>
+          ) : (
+            <span className="font-semibold text-red-500">
+              Out Of Stock
+            </span>
+          )}
+
+        </div>
+
+        {/* Add To Cart */}
+        <button
+          onClick={() => addToCart(product)}
+          disabled={isOutOfStock}
+          className={`mt-6 w-full rounded-xl py-3 font-semibold transition ${
+            isOutOfStock
+              ? "bg-zinc-600 text-zinc-300 cursor-not-allowed"
+              : "bg-white text-black hover:bg-zinc-200"
+          }`}
+        >
+          {isOutOfStock ? "Out Of Stock" : "Add to Cart"}
+        </button>
 
       </div>
     </div>

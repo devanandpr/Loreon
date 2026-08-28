@@ -23,8 +23,10 @@ app.use((0, helmet_1.default)());
 app.use((0, morgan_1.default)("dev"));
 app.use(express_1.default.json());
 app.use((0, cors_1.default)({
-    origin: process.env.CLIENT_ORIGIN ||
+    origin: [
         "http://localhost:3000",
+        "https://loreon-1.onrender.com",
+    ],
     credentials: true,
 }));
 // ========================================
