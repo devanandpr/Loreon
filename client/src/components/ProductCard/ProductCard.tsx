@@ -27,22 +27,19 @@ export default function ProductCard({ product }: Props) {
       )}
 
       {/* Image */}
-      <Link href={`/products/${product.id}`}>
-        <div className="relative aspect-square bg-zinc-950 overflow-hidden">
-
-          <Image
-            src={product.image}
-            alt={product.name}
-            fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-            className={`object-contain p-8 group-hover:scale-105 transition duration-500 ${
-              isOutOfStock ? "opacity-50" : ""
-            }`}
-            priority={product.isFeatured}
-          />
-
-        </div>
-      </Link>
+<Link href={`/products/${product.id}`}>
+  <div className="relative aspect-square bg-zinc-950 overflow-hidden">
+    <Image
+      src={product.image}
+      alt={product.name}
+      fill
+      unoptimized
+      className={`object-contain p-8 group-hover:scale-105 transition duration-500 ${
+        isOutOfStock ? "opacity-50" : ""
+      }`}
+    />
+  </div>
+</Link>
 
       {/* Content */}
       <div className="p-5">
