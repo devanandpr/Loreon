@@ -48,7 +48,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.NullsOrder = exports.QueryMode = exports.SortOrder = exports.OrderItemScalarFieldEnum = exports.OrderScalarFieldEnum = exports.ProductScalarFieldEnum = exports.TransactionIsolationLevel = exports.ModelName = exports.AnyNull = exports.JsonNull = exports.DbNull = exports.NullTypes = exports.Decimal = void 0;
+exports.NullsOrder = exports.QueryMode = exports.SortOrder = exports.OrderItemScalarFieldEnum = exports.PaymentScalarFieldEnum = exports.OrderScalarFieldEnum = exports.ProductScalarFieldEnum = exports.UserScalarFieldEnum = exports.TransactionIsolationLevel = exports.ModelName = exports.AnyNull = exports.JsonNull = exports.DbNull = exports.NullTypes = exports.Decimal = void 0;
 const runtime = __importStar(require("@prisma/client/runtime/index-browser"));
 exports.Decimal = runtime.Decimal;
 exports.NullTypes = {
@@ -75,8 +75,10 @@ exports.JsonNull = runtime.JsonNull;
  */
 exports.AnyNull = runtime.AnyNull;
 exports.ModelName = {
+    User: 'User',
     Product: 'Product',
     Order: 'Order',
+    Payment: 'Payment',
     OrderItem: 'OrderItem'
 };
 /*
@@ -88,6 +90,15 @@ exports.TransactionIsolationLevel = runtime.makeStrictEnum({
     RepeatableRead: 'RepeatableRead',
     Serializable: 'Serializable'
 });
+exports.UserScalarFieldEnum = {
+    id: 'id',
+    name: 'name',
+    email: 'email',
+    password: 'password',
+    role: 'role',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+};
 exports.ProductScalarFieldEnum = {
     id: 'id',
     slug: 'slug',
@@ -118,8 +129,20 @@ exports.OrderScalarFieldEnum = {
     subtotal: 'subtotal',
     shipping: 'shipping',
     total: 'total',
+    paymentMethod: 'paymentMethod',
     status: 'status',
     paymentStatus: 'paymentStatus',
+    userId: 'userId',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+};
+exports.PaymentScalarFieldEnum = {
+    id: 'id',
+    transactionId: 'transactionId',
+    amount: 'amount',
+    method: 'method',
+    status: 'status',
+    orderId: 'orderId',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
 };

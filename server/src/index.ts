@@ -166,8 +166,8 @@ app.use(
 // START SERVER
 // ========================================
 
-app.listen(PORT, () => {
+app.listen(Number(PORT), "0.0.0.0", () => {
   console.log(
-    `🚀 [Loreon API] Server running on http://localhost:${PORT}`
+    `🚀 [Loreon API] Server running on port ${PORT}`
   );
 });

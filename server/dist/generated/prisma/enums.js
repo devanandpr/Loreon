@@ -9,7 +9,11 @@
 * 🟢 You can import this file directly.
 */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PaymentStatus = exports.OrderStatus = void 0;
+exports.PaymentStatus = exports.OrderStatus = exports.UserRole = void 0;
+exports.UserRole = {
+    CUSTOMER: 'CUSTOMER',
+    ADMIN: 'ADMIN'
+};
 exports.OrderStatus = {
     PENDING: 'PENDING',
     CONFIRMED: 'CONFIRMED',
