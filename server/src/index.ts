@@ -37,9 +37,10 @@ app.use(express.json());
 
 app.use(
   cors({
-    origin:
-      process.env.CLIENT_ORIGIN ||
+    origin: [
       "http://localhost:3000",
+      "https://loreon-1.onrender.com",
+    ],
     credentials: true,
   })
 );
