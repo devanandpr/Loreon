@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+
 import {
   FiShoppingBag,
   FiSearch,
@@ -9,10 +11,16 @@ import {
   FiMenu,
   FiX,
 } from "react-icons/fi";
+
 import { useCartStore } from "@/store/useCartStore";
+import { useAuthStore } from "@/store/useAuthStore";
 
 export default function Navbar() {
+  const router = useRouter();
+
   const { cart, openCart } = useCartStore();
+  const { token, user } = useAuthStore();
+
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const totalItems = cart.reduce(
@@ -20,12 +28,36 @@ export default function Navbar() {
     0
   );
 
+  // ========================================
+  // ACCOUNT BUTTON
+  // ========================================
+
+  const handleAccountClick = () => {
+    // Not logged in
+    if (!token || !user) {
+      router.push("/login");
+      return;
+    }
+
+    // Admin
+    if (user.role === "ADMIN") {
+      router.push("/admin");
+      return;
+    }
+
+    // Customer
+    router.push("/account");
+  };
+
   return (
     <>
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-black/70 border-b border-zinc-800">
         <div className="max-w-7xl mx-auto h-16 px-5 flex items-center justify-between">
 
-          {/* Logo */}
+          {/* ========================================
+              LOGO
+          ======================================== */}
+
           <Link
             href="/"
             className="text-2xl font-bold tracking-[0.25em] text-white"
@@ -33,7 +65,10 @@ export default function Navbar() {
             LOREON
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* ========================================
+              DESKTOP NAVIGATION
+          ======================================== */}
+
           <nav className="hidden md:flex items-center gap-8 text-sm text-zinc-400">
 
             <Link
@@ -66,20 +101,57 @@ export default function Navbar() {
 
           </nav>
 
-          {/* Right Side */}
+          {/* ========================================
+              RIGHT SIDE
+          ======================================== */}
+
           <div className="flex items-center gap-2">
 
-            <button className="p-2 rounded-full hover:bg-zinc-900 transition">
+            {/* Search */}
+
+            <button
+              type="button"
+              className="p-2 rounded-full hover:bg-zinc-900 transition"
+              aria-label="Search"
+            >
               <FiSearch className="w-5 h-5" />
             </button>
 
-            <button className="p-2 rounded-full hover:bg-zinc-900 transition">
+            {/* ========================================
+                ACCOUNT
+            ======================================== */}
+
+            <button
+              type="button"
+              onClick={handleAccountClick}
+              className="p-2 rounded-full hover:bg-zinc-900 transition"
+              aria-label={
+                token
+                  ? user?.role === "ADMIN"
+                    ? "Admin Dashboard"
+                    : "My Account"
+                  : "Login"
+              }
+              title={
+                token
+                  ? user?.role === "ADMIN"
+                    ? "Admin Dashboard"
+                    : "My Account"
+                  : "Login"
+              }
+            >
               <FiUser className="w-5 h-5" />
             </button>
 
+            {/* ========================================
+                CART
+            ======================================== */}
+
             <button
+              type="button"
               onClick={openCart}
               className="relative p-2 rounded-full hover:bg-zinc-900 transition"
+              aria-label="Shopping cart"
             >
               <FiShoppingBag className="w-5 h-5" />
 
@@ -90,10 +162,15 @@ export default function Navbar() {
               )}
             </button>
 
-            {/* Mobile Menu */}
+            {/* ========================================
+                MOBILE MENU BUTTON
+            ======================================== */}
+
             <button
+              type="button"
               onClick={() => setMobileOpen(!mobileOpen)}
               className="md:hidden p-2 rounded-full hover:bg-zinc-900 transition"
+              aria-label="Toggle menu"
             >
               {mobileOpen ? (
                 <FiX size={22} />
@@ -107,7 +184,10 @@ export default function Navbar() {
         </div>
       </header>
 
-      {/* Mobile Navigation */}
+      {/* ========================================
+          MOBILE NAVIGATION
+      ======================================== */}
+
       {mobileOpen && (
         <div className="md:hidden bg-zinc-950 border-b border-zinc-800">
 
@@ -144,6 +224,23 @@ export default function Navbar() {
             >
               Why Us
             </Link>
+
+            {/* Account */}
+
+            <button
+              type="button"
+              onClick={() => {
+                setMobileOpen(false);
+                handleAccountClick();
+              }}
+              className="text-left px-6 py-3 hover:bg-zinc-900 transition"
+            >
+              {!token
+                ? "Login"
+                : user?.role === "ADMIN"
+                  ? "Admin Dashboard"
+                  : "My Account"}
+            </button>
 
           </nav>
 

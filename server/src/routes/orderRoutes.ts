@@ -1,5 +1,6 @@
-import { Router, Request, Response } from "express";
+import { Router, Response } from "express";
 import prisma from "../lib/prisma";
+
 import {
   authenticate,
   requireAdmin,
@@ -8,171 +9,29 @@ import {
 
 const router = Router();
 
-// ========================================
+// =====================================================
 // POST /api/orders
 // Create a new order
-// ========================================
+// =====================================================
 
 router.post(
   "/",
   authenticate,
   async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const {
-  customer,
-  items,
-  subtotal,
-  shipping,
-  total,
-  paymentMethod,
-} = req.body;
-
-    // Basic validation
-    if (
-      !customer ||
-      !customer.name ||
-      !customer.email ||
-      !customer.phone ||
-      !customer.address ||
-      !customer.city ||
-      !customer.state ||
-      !customer.pincode
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Complete customer information is required",
-      });
-    }
-
-    if (!Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Order must contain at least one product",
-      });
-    }
-    if (!req.user) {
-  return res.status(401).json({
-    success: false,
-    message: "Authentication required",
-  });
-}
-    // Create order and update stock atomically
-    const order = await prisma.$transaction(async (tx) => {
-      const orderItems: {
-  productId: string;
-  quantity: number;
-  price: number;
-}[] = [];
-
-      for (const item of items) {
-        const product = await tx.product.findUnique({
-          where: {
-            id: item.id,
-          },
-        });
-
-        if (!product) {
-          throw new Error(
-            `Product not found: ${item.id}`
-          );
-        }
-
-        if (item.quantity <= 0) {
-          throw new Error(
-            `Invalid quantity for ${product.name}`
-          );
-        }
-
-        if (product.stock < item.quantity) {
-          throw new Error(
-            `Not enough stock for ${product.name}. Available: ${product.stock}`
-          );
-        }
-
-        orderItems.push({
-          productId: product.id,
-          quantity: item.quantity,
-          price: product.price,
-        });
-
-        // Reduce stock
-        await tx.product.update({
-          where: {
-            id: product.id,
-          },
-          data: {
-            stock: {
-              decrement: item.quantity,
-            },
-          },
-        });
-      }
-
-      // Create order
-      return tx.order.create({
-        data: {
-          customerName: customer.name,
-          email: customer.email,
-          phone: customer.phone,
-          address: customer.address,
-          city: customer.city,
-          state: customer.state,
-          pincode: customer.pincode,
-
-          userId: req.user?.userId,
-
-          subtotal,
-          shipping,
-          total,
-          paymentMethod: paymentMethod || "COD",
-
-          items: {
-            create: orderItems,
-          },
-          
-        },
-
-        include: {
-          items: {
-            include: {
-              product: true,
-            },
-          },
-        },
-      });
-    });
-
-    res.status(201).json({
-      success: true,
-      message: "Order created successfully",
-      order,
-    });
-  } catch (error) {
-    console.error(
-      "Order creation failed:",
-      error
-    );
-
-    res.status(400).json({
-      success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Failed to create order",
-    });
-  }
-});
-
-// ========================================
-// GET /api/orders/my-orders
-// Get orders belonging to logged-in customer
-// ========================================
-
-router.get(
-  "/my-orders",
-  authenticate,
-  async (req: AuthenticatedRequest, res: Response) => {
     try {
+      const {
+        customer,
+        items,
+        subtotal,
+        shipping,
+        total,
+        paymentMethod,
+      } = req.body;
+
+      // -------------------------------------------------
+      // Authentication check
+      // -------------------------------------------------
+
       if (!req.user) {
         return res.status(401).json({
           success: false,
@@ -180,31 +39,293 @@ router.get(
         });
       }
 
-      const orders = await prisma.order.findMany({
-        where: {
-          userId: req.user.userId,
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-        include: {
-          items: {
-            include: {
-              product: true,
-            },
-          },
-        },
-      });
+      // IMPORTANT:
+      // Store userId before entering Prisma transaction.
+      // This prevents TypeScript errors with req.user.
+      const userId = req.user.userId;
 
-      res.status(200).json({
+      // -------------------------------------------------
+      // Validate customer information
+      // -------------------------------------------------
+
+      if (
+        !customer ||
+        !customer.name ||
+        !customer.email ||
+        !customer.phone ||
+        !customer.address ||
+        !customer.city ||
+        !customer.state ||
+        !customer.pincode
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Complete customer information is required",
+        });
+      }
+
+      // -------------------------------------------------
+      // Validate items
+      // -------------------------------------------------
+
+      if (!Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Order must contain at least one product",
+        });
+      }
+
+      // -------------------------------------------------
+      // Validate payment method
+      // -------------------------------------------------
+
+      const selectedPaymentMethod =
+        paymentMethod || "COD";
+
+      const allowedPaymentMethods = [
+        "COD",
+        "ONLINE",
+      ];
+
+      if (
+        !allowedPaymentMethods.includes(
+          selectedPaymentMethod
+        )
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid payment method",
+        });
+      }
+
+      // -------------------------------------------------
+      // Create order + update stock atomically
+      // -------------------------------------------------
+
+      const order = await prisma.$transaction(
+        async (tx) => {
+          const orderItems: {
+            productId: string;
+            quantity: number;
+            price: number;
+          }[] = [];
+
+          // ---------------------------------------------
+          // Validate every product
+          // ---------------------------------------------
+
+          for (const item of items) {
+            if (!item.id) {
+              throw new Error(
+                "Product ID is required"
+              );
+            }
+
+            if (
+              typeof item.quantity !== "number" ||
+              item.quantity <= 0
+            ) {
+              throw new Error(
+                "Invalid product quantity"
+              );
+            }
+
+            const product =
+              await tx.product.findUnique({
+                where: {
+                  id: item.id,
+                },
+              });
+
+            if (!product) {
+              throw new Error(
+                `Product not found: ${item.id}`
+              );
+            }
+
+            // -------------------------------------------
+            // Check stock
+            // -------------------------------------------
+
+            if (
+              product.stock <
+              item.quantity
+            ) {
+              throw new Error(
+                `Not enough stock for ${product.name}. Available: ${product.stock}`
+              );
+            }
+
+            // -------------------------------------------
+            // Store product price from database
+            // -------------------------------------------
+            //
+            // IMPORTANT:
+            // We don't trust the price sent by the
+            // frontend.
+            //
+            // The database price is used instead.
+            // -------------------------------------------
+
+            orderItems.push({
+              productId: product.id,
+              quantity: item.quantity,
+              price: product.price,
+            });
+
+            // -------------------------------------------
+            // Reduce stock
+            // -------------------------------------------
+
+            await tx.product.update({
+              where: {
+                id: product.id,
+              },
+              data: {
+                stock: {
+                  decrement: item.quantity,
+                },
+              },
+            });
+          }
+
+          // -------------------------------------------------
+          // Create order
+          // -------------------------------------------------
+
+          const createdOrder =
+            await tx.order.create({
+              data: {
+                customerName: customer.name,
+                email: customer.email,
+                phone: customer.phone,
+                address: customer.address,
+                city: customer.city,
+                state: customer.state,
+                pincode: customer.pincode,
+
+                userId: userId,
+
+                subtotal: Number(subtotal),
+                shipping: Number(shipping),
+                total: Number(total),
+
+                paymentMethod:
+                  selectedPaymentMethod,
+
+                // Payment starts as PENDING
+                paymentStatus: "PENDING",
+
+                // Order starts as PENDING
+                status: "PENDING",
+
+                items: {
+                  create: orderItems,
+                },
+              },
+
+              include: {
+                items: {
+                  include: {
+                    product: true,
+                  },
+                },
+              },
+            });
+
+          return createdOrder;
+        }
+      );
+
+      // -------------------------------------------------
+      // Success response
+      // -------------------------------------------------
+
+      return res.status(201).json({
+        success: true,
+        message: "Order created successfully",
+        order,
+      });
+    } catch (error) {
+      console.error(
+        "Order creation failed:",
+        error
+      );
+
+      return res.status(400).json({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to create order",
+      });
+    }
+  }
+);
+
+// =====================================================
+// GET /api/orders/my-orders
+// Get orders belonging to logged-in customer
+// =====================================================
+
+router.get(
+  "/my-orders",
+  authenticate,
+  async (
+    req: AuthenticatedRequest,
+    res: Response
+  ) => {
+    try {
+      // -------------------------------------------------
+      // Authentication check
+      // -------------------------------------------------
+
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message: "Authentication required",
+        });
+      }
+
+      const userId = req.user.userId;
+
+      // -------------------------------------------------
+      // Find customer's orders
+      // -------------------------------------------------
+
+      const orders =
+        await prisma.order.findMany({
+          where: {
+            userId: userId,
+          },
+
+          orderBy: {
+            createdAt: "desc",
+          },
+
+          include: {
+            items: {
+              include: {
+                product: true,
+              },
+            },
+
+            payment: true,
+          },
+        });
+
+      return res.status(200).json({
         success: true,
         count: orders.length,
         orders,
       });
     } catch (error) {
-      console.error("Error fetching customer orders:", error);
+      console.error(
+        "Error fetching customer orders:",
+        error
+      );
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message: "Failed to fetch your orders",
       });
@@ -212,60 +333,87 @@ router.get(
   }
 );
 
-// ========================================
+// =====================================================
 // GET /api/orders
-// Get all orders
-// ========================================
+// Admin: Get all orders
+// =====================================================
 
 router.get(
   "/",
   authenticate,
   requireAdmin,
-  async (_req: AuthenticatedRequest, res: Response) => {
-  try {
-    const orders = await prisma.order.findMany({
-      orderBy: {
-        createdAt: "desc",
-      },
-      include: {
-        items: {
-          include: {
-            product: true,
+  async (
+    _req: AuthenticatedRequest,
+    res: Response
+  ) => {
+    try {
+      const orders =
+        await prisma.order.findMany({
+          orderBy: {
+            createdAt: "desc",
           },
-        },
-      },
-    });
 
-    res.status(200).json({
-      success: true,
-      count: orders.length,
-      orders,
-    });
-  } catch (error) {
-    console.error(
-      "Error fetching orders:",
-      error
-    );
+          include: {
+            items: {
+              include: {
+                product: true,
+              },
+            },
 
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch orders",
-    });
+            payment: true,
+
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        });
+
+      return res.status(200).json({
+        success: true,
+        count: orders.length,
+        orders,
+      });
+    } catch (error) {
+      console.error(
+        "Error fetching orders:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch orders",
+      });
+    }
   }
-});
+);
 
-// ========================================
+// =====================================================
 // GET /api/orders/:id
 // Get a single order
-// Admin: any order
-// Customer: only their own order
-// ========================================
+//
+// Admin:
+// Can view any order.
+//
+// Customer:
+// Can only view their own order.
+// =====================================================
 
 router.get(
   "/:id",
   authenticate,
-  async (req: AuthenticatedRequest, res: Response) => {
+  async (
+    req: AuthenticatedRequest,
+    res: Response
+  ) => {
     try {
+      // -------------------------------------------------
+      // Authentication check
+      // -------------------------------------------------
+
       if (!req.user) {
         return res.status(401).json({
           success: false,
@@ -273,18 +421,38 @@ router.get(
         });
       }
 
-      const order = await prisma.order.findUnique({
-        where: {
-          id: req.params.id,
-        },
-        include: {
-          items: {
-            include: {
-              product: true,
+      // -------------------------------------------------
+      // Find order
+      // -------------------------------------------------
+
+      const order =
+        await prisma.order.findUnique({
+          where: {
+            id: req.params.id,
+          },
+
+          include: {
+            items: {
+              include: {
+                product: true,
+              },
+            },
+
+            payment: true,
+
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
             },
           },
-        },
-      });
+        });
+
+      // -------------------------------------------------
+      // Order doesn't exist
+      // -------------------------------------------------
 
       if (!order) {
         return res.status(404).json({
@@ -293,18 +461,26 @@ router.get(
         });
       }
 
-      // Customers can only view their own orders
+      // -------------------------------------------------
+      // Customer authorization
+      // -------------------------------------------------
+
       if (
         req.user.role !== "ADMIN" &&
         order.userId !== req.user.userId
       ) {
         return res.status(403).json({
           success: false,
-          message: "You are not authorized to view this order",
+          message:
+            "You are not authorized to view this order",
         });
       }
 
-      res.status(200).json({
+      // -------------------------------------------------
+      // Success
+      // -------------------------------------------------
+
+      return res.status(200).json({
         success: true,
         order,
       });
@@ -314,7 +490,7 @@ router.get(
         error
       );
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message: "Failed to fetch order",
       });
@@ -322,20 +498,26 @@ router.get(
   }
 );
 
-// ========================================
+// =====================================================
 // PATCH /api/orders/:id/status
-// Update order status
-// ========================================
+// Admin: Update order status
+// =====================================================
 
 router.patch(
   "/:id/status",
   authenticate,
   requireAdmin,
-  async (req: AuthenticatedRequest, res: Response) => {
+  async (
+    req: AuthenticatedRequest,
+    res: Response
+  ) => {
     try {
       const { status } = req.body;
 
-      // Allowed order statuses
+      // -------------------------------------------------
+      // Allowed statuses
+      // -------------------------------------------------
+
       const allowedStatuses = [
         "PENDING",
         "CONFIRMED",
@@ -345,7 +527,10 @@ router.patch(
         "CANCELLED",
       ];
 
+      // -------------------------------------------------
       // Validate status
+      // -------------------------------------------------
+
       if (
         !status ||
         !allowedStatuses.includes(status)
@@ -357,7 +542,10 @@ router.patch(
         });
       }
 
-      // Check whether order exists
+      // -------------------------------------------------
+      // Check order
+      // -------------------------------------------------
+
       const existingOrder =
         await prisma.order.findUnique({
           where: {
@@ -372,27 +560,35 @@ router.patch(
         });
       }
 
-      // Update status
+      // -------------------------------------------------
+      // Update order status
+      // -------------------------------------------------
+
       const updatedOrder =
         await prisma.order.update({
           where: {
             id: req.params.id,
           },
+
           data: {
-            status,
+            status: status,
           },
+
           include: {
             items: {
               include: {
                 product: true,
               },
             },
+
+            payment: true,
           },
         });
 
-      res.status(200).json({
+      return res.status(200).json({
         success: true,
-        message: "Order status updated successfully",
+        message:
+          "Order status updated successfully",
         order: updatedOrder,
       });
     } catch (error) {
@@ -401,9 +597,10 @@ router.patch(
         error
       );
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
-        message: "Failed to update order status",
+        message:
+          "Failed to update order status",
       });
     }
   }

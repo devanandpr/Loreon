@@ -1,18 +1,23 @@
-import express, { Express, Request, Response } from "express";
+import express, {
+  Express,
+  Request,
+  Response,
+} from "express";
+
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import dotenv from "dotenv";
+
 import orderRoutes from "./routes/orderRoutes";
 import authRoutes from "./routes/authRoutes";
 import adminRoutes from "./routes/adminRoutes";
+import productRoutes from "./routes/productRoutes";
+
 import {
   authenticate,
-  requireAdmin,
   AuthenticatedRequest,
 } from "./middleware/authMiddleware";
-
-import productRoutes from "./routes/productRoutes";
 
 dotenv.config();
 
@@ -20,31 +25,29 @@ const app: Express = express();
 
 const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(helmet());
-app.use(morgan("dev"));
-app.use(express.json());
+// ========================================
+// MIDDLEWARE
+// ========================================
 
-app.get(
-  "/api/auth/me",
-  authenticate,
-  (req: AuthenticatedRequest, res: Response) => {
-    res.json({
-      success: true,
-      message: "You are authenticated",
-      user: req.user,
-    });
-  }
-);
+app.use(helmet());
+
+app.use(morgan("dev"));
+
+app.use(express.json());
 
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN || "http://localhost:3000",
+    origin:
+      process.env.CLIENT_ORIGIN ||
+      "http://localhost:3000",
     credentials: true,
   })
 );
 
-// Root
+// ========================================
+// ROOT
+// ========================================
+
 app.get("/", (_req: Request, res: Response) => {
   res.status(200).json({
     success: true,
@@ -53,7 +56,10 @@ app.get("/", (_req: Request, res: Response) => {
   });
 });
 
-// Health Check
+// ========================================
+// HEALTH CHECK
+// ========================================
+
 app.get("/health", (_req: Request, res: Response) => {
   res.status(200).json({
     status: "ok",
@@ -61,19 +67,105 @@ app.get("/health", (_req: Request, res: Response) => {
   });
 });
 
-// Product Routes
-app.use("/api/products", productRoutes);
+// ========================================
+// AUTHENTICATED USER
+// GET /api/auth/me
+// ========================================
 
-// Order Routes
-app.use("/api/orders", orderRoutes);
+app.get(
+  "/api/auth/me",
+  authenticate,
+  (
+    req: AuthenticatedRequest,
+    res: Response
+  ) => {
+    res.status(200).json({
+      success: true,
+      message: "You are authenticated",
+      user: req.user,
+    });
+  }
+);
 
-// Authentication Routes
-app.use("/api/auth", authRoutes);
+// ========================================
+// PRODUCT ROUTES
+// ========================================
 
-// Admin Routes
-app.use("/api/admin",adminRoutes);
+app.use(
+  "/api/products",
+  productRoutes
+);
 
-// Start Server
+// ========================================
+// ORDER ROUTES
+// ========================================
+
+app.use(
+  "/api/orders",
+  orderRoutes
+);
+
+// ========================================
+// AUTHENTICATION ROUTES
+// ========================================
+
+app.use(
+  "/api/auth",
+  authRoutes
+);
+
+// ========================================
+// ADMIN ROUTES
+// ========================================
+
+app.use(
+  "/api/admin",
+  adminRoutes
+);
+
+// ========================================
+// 404 HANDLER
+// ========================================
+
+app.use(
+  (
+    _req: Request,
+    res: Response
+  ) => {
+    res.status(404).json({
+      success: false,
+      message: "API route not found",
+    });
+  }
+);
+
+// ========================================
+// GLOBAL ERROR HANDLER
+// ========================================
+
+app.use(
+  (
+    error: Error,
+    _req: Request,
+    res: Response,
+    _next: Function
+  ) => {
+    console.error(
+      "Unhandled server error:",
+      error
+    );
+
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+);
+
+// ========================================
+// START SERVER
+// ========================================
+
 app.listen(PORT, () => {
   console.log(
     `🚀 [Loreon API] Server running on http://localhost:${PORT}`
