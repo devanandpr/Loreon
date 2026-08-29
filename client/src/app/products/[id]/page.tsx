@@ -189,6 +189,7 @@ export default function ProductPage() {
                 alt={product.name}
                 width={650}
                 height={650}
+                unoptimized
                 priority
                 className={`mx-auto object-contain transition duration-500 ${
                   isOutOfStock

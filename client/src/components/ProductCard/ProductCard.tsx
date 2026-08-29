@@ -15,7 +15,7 @@ export default function ProductCard({ product }: Props) {
   const isOutOfStock = product.stock <= 0;
 
   return (
-    <div className="group relative rounded-2xl bg-zinc-900 border border-zinc-800 overflow-hidden hover:border-zinc-700 transition duration-300">
+    <div className="group rounded-2xl bg-zinc-900 border border-zinc-800 overflow-hidden hover:border-zinc-700 transition duration-300">
 
       {/* Badge */}
       {product.badge && (
@@ -26,22 +26,26 @@ export default function ProductCard({ product }: Props) {
         </div>
       )}
 
-      {/* Image */}
-<Link href={`/products/${product.id}`}>
-  <div className="relative aspect-square bg-zinc-950 overflow-hidden">
-    <Image
-      src={product.image}
-      alt={product.name}
-      fill
-      unoptimized
-      className={`object-contain p-8 group-hover:scale-105 transition duration-500 ${
-        isOutOfStock ? "opacity-50" : ""
-      }`}
-    />
-  </div>
-</Link>
+      {/* Product Image */}
+      <Link href={`/products/${product.id}`}>
+        <div className="relative aspect-square bg-zinc-950 overflow-hidden">
 
-      {/* Content */}
+          <Image
+            src={product.image}
+            alt={product.name}
+            fill
+            unoptimized
+            priority
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+            className={`object-contain p-8 group-hover:scale-105 transition duration-500 ${
+              isOutOfStock ? "opacity-50" : ""
+            }`}
+          />
+
+        </div>
+      </Link>
+
+      {/* Product Information */}
       <div className="p-5">
 
         {/* Brand */}
@@ -117,10 +121,13 @@ export default function ProductCard({ product }: Props) {
               : "bg-white text-black hover:bg-zinc-200"
           }`}
         >
-          {isOutOfStock ? "Out Of Stock" : "Add to Cart"}
+          {isOutOfStock
+            ? "Out Of Stock"
+            : "Add to Cart"}
         </button>
 
       </div>
+
     </div>
   );
 }
