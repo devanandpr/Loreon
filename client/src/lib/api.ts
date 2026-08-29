@@ -1,5 +1,6 @@
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://loreon-42rk.onrender.com/api";
 
 /* =====================================================
    PRODUCTS
@@ -26,7 +27,6 @@ export async function getProduct(id: string) {
 
   return response.json();
 }
-
 
 /* =====================================================
    AUTHENTICATION
@@ -67,7 +67,6 @@ export async function registerUser(
   return data;
 }
 
-
 /* ---------------- LOGIN ---------------- */
 
 export async function loginUser(
@@ -100,7 +99,6 @@ export async function loginUser(
 
   return data;
 }
-
 
 /* =====================================================
    ORDERS
@@ -158,23 +156,47 @@ export async function createOrder(
   return data;
 }
 
+/* ---------------- GET MY ORDERS ---------------- */
+
+export async function getMyOrders(
+  token: string
+) {
+  const response = await fetch(
+    `${API_URL}/orders/my-orders`,
+    {
+      method: "GET",
+
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      data.message || "Failed to fetch orders"
+    );
+  }
+
+  return data;
+}
 
 /* ---------------- GET ORDER ---------------- */
 
 export async function getOrder(
   id: string,
-  token?: string
+  token: string
 ) {
   const response = await fetch(
     `${API_URL}/orders/${id}`,
     {
       method: "GET",
 
-      headers: token
-        ? {
-            Authorization: `Bearer ${token}`,
-          }
-        : undefined,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     }
   );
 

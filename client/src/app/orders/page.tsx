@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+
 import { useAuthStore } from "@/store/useAuthStore";
+import { getMyOrders } from "@/lib/api";
 
 interface Product {
   id: string;
@@ -28,9 +30,6 @@ interface Order {
   items: OrderItem[];
 }
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
 export default function OrdersPage() {
   const { token, user } = useAuthStore();
 
@@ -39,24 +38,38 @@ export default function OrdersPage() {
   const [error, setError] = useState("");
   const [isHydrated, setIsHydrated] = useState(false);
 
-  // --------------------------------------------------
-  // Wait for Zustand persist to hydrate
-  // --------------------------------------------------
+  /* =====================================================
+     ZUSTAND HYDRATION
+  ===================================================== */
 
   useEffect(() => {
-    setIsHydrated(true);
+    const persist = useAuthStore.persist;
+
+    if (persist.hasHydrated()) {
+      setIsHydrated(true);
+      return;
+    }
+
+    const unsubscribe =
+      persist.onFinishHydration(() => {
+        setIsHydrated(true);
+      });
+
+    return unsubscribe;
   }, []);
 
-  // --------------------------------------------------
-  // Fetch customer orders
-  // --------------------------------------------------
+  /* =====================================================
+     FETCH CUSTOMER ORDERS
+  ===================================================== */
 
   useEffect(() => {
     if (!isHydrated) return;
 
     if (!token) {
       setLoading(false);
-      setError("Please login to view your orders.");
+      setError(
+        "Please login to view your orders."
+      );
       return;
     }
 
@@ -65,28 +78,14 @@ export default function OrdersPage() {
         setLoading(true);
         setError("");
 
-        const response = await fetch(
-          `${API_BASE_URL}/api/orders/my-orders`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            data.message || "Failed to fetch orders"
-          );
-        }
+        const data = await getMyOrders(token);
 
         setOrders(data.orders || []);
       } catch (err) {
-        console.error("Orders fetch error:", err);
+        console.error(
+          "Orders fetch error:",
+          err
+        );
 
         setError(
           err instanceof Error
@@ -101,15 +100,17 @@ export default function OrdersPage() {
     fetchOrders();
   }, [token, isHydrated]);
 
-  // --------------------------------------------------
-  // Loading / Hydration
-  // --------------------------------------------------
+  /* =====================================================
+     LOADING
+  ===================================================== */
 
   if (!isHydrated || loading) {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
         <div className="text-center">
-          <div className="text-4xl mb-4">⏳</div>
+          <div className="text-4xl mb-4">
+            ⏳
+          </div>
 
           <h1 className="text-2xl font-bold">
             Loading Orders
@@ -123,9 +124,9 @@ export default function OrdersPage() {
     );
   }
 
-  // --------------------------------------------------
-  // Not logged in
-  // --------------------------------------------------
+  /* =====================================================
+     LOGIN REQUIRED
+  ===================================================== */
 
   if (!token || !user) {
     return (
@@ -150,9 +151,9 @@ export default function OrdersPage() {
     );
   }
 
-  // --------------------------------------------------
-  // Error
-  // --------------------------------------------------
+  /* =====================================================
+     ERROR
+  ===================================================== */
 
   if (error) {
     return (
@@ -177,9 +178,9 @@ export default function OrdersPage() {
     );
   }
 
-  // --------------------------------------------------
-  // Orders Page
-  // --------------------------------------------------
+  /* =====================================================
+     ORDERS PAGE
+  ===================================================== */
 
   return (
     <main className="min-h-screen bg-black text-white">
@@ -203,11 +204,11 @@ export default function OrdersPage() {
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main */}
 
       <section className="max-w-5xl mx-auto px-6 py-12">
 
-        {/* Page Heading */}
+        {/* Heading */}
 
         <div className="mb-10">
 
@@ -254,8 +255,6 @@ export default function OrdersPage() {
 
         ) : (
 
-          /* Orders List */
-
           <div className="space-y-6">
 
             {orders.map((order) => (
@@ -290,11 +289,14 @@ export default function OrdersPage() {
                     <p className="mt-1">
                       {new Date(
                         order.createdAt
-                      ).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
+                      ).toLocaleDateString(
+                        "en-IN",
+                        {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        }
+                      )}
                     </p>
 
                   </div>
@@ -358,7 +360,7 @@ export default function OrdersPage() {
 
                 </div>
 
-                {/* Bottom Section */}
+                {/* Bottom */}
 
                 <div className="border-t border-zinc-800 mt-6 pt-6 flex flex-col md:flex-row md:items-center md:justify-between gap-5">
 
@@ -368,9 +370,11 @@ export default function OrdersPage() {
 
                     <span
                       className={`px-3 py-1 rounded-full text-sm ${
-                        order.status === "DELIVERED"
+                        order.status ===
+                        "DELIVERED"
                           ? "bg-green-500/10 text-green-400"
-                          : order.status === "CANCELLED"
+                          : order.status ===
+                            "CANCELLED"
                           ? "bg-red-500/10 text-red-400"
                           : "bg-yellow-500/10 text-yellow-400"
                       }`}
@@ -395,7 +399,10 @@ export default function OrdersPage() {
                       </p>
 
                       <p className="text-xl font-bold">
-                        ₹{Number(order.total).toFixed(2)}
+                        ₹
+                        {Number(
+                          order.total
+                        ).toFixed(2)}
                       </p>
 
                     </div>

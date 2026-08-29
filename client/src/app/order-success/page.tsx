@@ -38,6 +38,10 @@ interface Order {
   createdAt: string;
 }
 
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:5000/api";
+
 export default function OrderSuccessPage() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get("orderId");
@@ -63,8 +67,11 @@ export default function OrderSuccessPage() {
 
     const fetchOrder = async () => {
       try {
+        setLoading(true);
+        setError("");
+
         const response = await fetch(
-          `http://localhost:5000/api/orders/${orderId}`,
+          `${API_URL}/orders/${orderId}`,
           {
             method: "GET",
             headers: {
@@ -105,10 +112,7 @@ export default function OrderSuccessPage() {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
         <div className="text-center">
-
-          <div className="text-4xl mb-4">
-            ⏳
-          </div>
+          <div className="text-4xl mb-4">⏳</div>
 
           <h1 className="text-2xl font-bold">
             Loading Your Order
@@ -117,7 +121,6 @@ export default function OrderSuccessPage() {
           <p className="text-zinc-500 mt-2">
             Please wait...
           </p>
-
         </div>
       </main>
     );
@@ -128,15 +131,12 @@ export default function OrderSuccessPage() {
   if (error || !order) {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
-
         <div className="max-w-xl w-full text-center">
 
           <div className="mx-auto w-20 h-20 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center">
-
             <span className="text-4xl text-red-500">
               !
             </span>
-
           </div>
 
           <h1 className="text-3xl font-bold mt-8">
@@ -155,7 +155,6 @@ export default function OrderSuccessPage() {
           </Link>
 
         </div>
-
       </main>
     );
   }
@@ -168,18 +167,14 @@ export default function OrderSuccessPage() {
       {/* Header */}
 
       <header className="border-b border-zinc-800">
-
         <div className="max-w-7xl mx-auto px-6 py-6">
-
           <Link
             href="/"
             className="text-2xl font-bold"
           >
             LOREON
           </Link>
-
         </div>
-
       </header>
 
       {/* Main */}
@@ -191,11 +186,9 @@ export default function OrderSuccessPage() {
         <div className="text-center">
 
           <div className="mx-auto w-20 h-20 rounded-full bg-green-500/10 border border-green-500/30 flex items-center justify-center">
-
             <span className="text-4xl text-green-500">
               ✓
             </span>
-
           </div>
 
           <p className="uppercase tracking-[0.3em] text-zinc-500 text-sm mt-8">
@@ -211,7 +204,6 @@ export default function OrderSuccessPage() {
           </p>
 
           <div className="mt-6 inline-block bg-zinc-900 border border-zinc-800 rounded-xl px-6 py-4">
-
             <p className="text-xs text-zinc-500">
               Order ID
             </p>
@@ -219,7 +211,6 @@ export default function OrderSuccessPage() {
             <p className="font-mono font-semibold mt-1 break-all">
               {order.id}
             </p>
-
           </div>
 
         </div>
@@ -267,7 +258,6 @@ export default function OrderSuccessPage() {
               </div>
 
             </div>
-
           </div>
 
           {/* Delivery */}
@@ -279,17 +269,11 @@ export default function OrderSuccessPage() {
             </h2>
 
             <p className="text-zinc-300 leading-relaxed">
-
               {order.address}
-
               <br />
-
               {order.city}, {order.state}
-
               <br />
-
               PIN: {order.pincode}
-
             </p>
 
           </div>
@@ -363,36 +347,26 @@ export default function OrderSuccessPage() {
           <div className="space-y-4">
 
             <div className="flex justify-between text-zinc-400">
-
-              <span>
-                Subtotal
-              </span>
+              <span>Subtotal</span>
 
               <span>
                 ${order.subtotal.toFixed(2)}
               </span>
-
             </div>
 
             <div className="flex justify-between text-zinc-400">
-
-              <span>
-                Shipping
-              </span>
+              <span>Shipping</span>
 
               <span>
                 {order.shipping === 0
                   ? "FREE"
                   : `$${order.shipping.toFixed(2)}`}
               </span>
-
             </div>
 
             <div className="border-t border-zinc-800 pt-4 flex justify-between text-xl font-bold">
 
-              <span>
-                Total
-              </span>
+              <span>Total</span>
 
               <span>
                 ${order.total.toFixed(2)}

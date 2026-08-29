@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+
 import { useAuthStore } from "@/store/useAuthStore";
+import { getOrder } from "@/lib/api";
 
 interface Product {
   id: string;
@@ -37,9 +39,6 @@ interface Order {
   items: OrderItem[];
 }
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
 const ORDER_STATUSES = [
   "PENDING",
   "CONFIRMED",
@@ -61,17 +60,22 @@ export default function OrderDetailsPage() {
 
   const { token, user } = useAuthStore();
 
-  const [order, setOrder] = useState<Order | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [isHydrated, setIsHydrated] = useState(false);
+  const [order, setOrder] =
+    useState<Order | null>(null);
 
-  /*
-   * Zustand persist hydration
-   *
-   * This prevents the page from checking token before
-   * localStorage has been loaded.
-   */
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  const [isHydrated, setIsHydrated] =
+    useState(false);
+
+  /* =====================================================
+     ZUSTAND HYDRATION
+  ===================================================== */
+
   useEffect(() => {
     const persist = useAuthStore.persist;
 
@@ -80,16 +84,18 @@ export default function OrderDetailsPage() {
       return;
     }
 
-    const unsubscribe = persist.onFinishHydration(() => {
-      setIsHydrated(true);
-    });
+    const unsubscribe =
+      persist.onFinishHydration(() => {
+        setIsHydrated(true);
+      });
 
     return unsubscribe;
   }, []);
 
-  /*
-   * Fetch order
-   */
+  /* =====================================================
+     FETCH ORDER
+  ===================================================== */
+
   useEffect(() => {
     if (!isHydrated) return;
 
@@ -101,6 +107,9 @@ export default function OrderDetailsPage() {
 
     if (!token) {
       setLoading(false);
+      setError(
+        "Please login to view your order."
+      );
       return;
     }
 
@@ -109,28 +118,17 @@ export default function OrderDetailsPage() {
         setLoading(true);
         setError("");
 
-        const response = await fetch(
-          `${API_BASE_URL}/api/orders/${orderId}`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
+        const data = await getOrder(
+          orderId,
+          token
         );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            data.message || "Failed to fetch order"
-          );
-        }
 
         setOrder(data.order);
       } catch (err) {
-        console.error("Order details error:", err);
+        console.error(
+          "Order details error:",
+          err
+        );
 
         setError(
           err instanceof Error
@@ -145,14 +143,19 @@ export default function OrderDetailsPage() {
     fetchOrder();
   }, [isHydrated, orderId, token]);
 
-  /*
-   * Loading state
-   */
+  /* =====================================================
+     LOADING
+  ===================================================== */
+
   if (!isHydrated || loading) {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
+
         <div className="text-center">
-          <div className="text-4xl mb-4">⏳</div>
+
+          <div className="text-4xl mb-4">
+            ⏳
+          </div>
 
           <h1 className="text-2xl font-bold">
             Loading Order
@@ -161,18 +164,23 @@ export default function OrderDetailsPage() {
           <p className="text-zinc-500 mt-2">
             Please wait...
           </p>
+
         </div>
+
       </main>
     );
   }
 
-  /*
-   * Login required
-   */
+  /* =====================================================
+     LOGIN REQUIRED
+  ===================================================== */
+
   if (!token || !user) {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
+
         <div className="text-center max-w-md">
+
           <h1 className="text-3xl font-bold">
             Login Required
           </h1>
@@ -187,18 +195,23 @@ export default function OrderDetailsPage() {
           >
             Login
           </Link>
+
         </div>
+
       </main>
     );
   }
 
-  /*
-   * Error state
-   */
+  /* =====================================================
+     ERROR
+  ===================================================== */
+
   if (error || !order) {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
+
         <div className="text-center max-w-md">
+
           <h1 className="text-3xl font-bold">
             Unable to Load Order
           </h1>
@@ -213,32 +226,29 @@ export default function OrderDetailsPage() {
           >
             Back to My Orders
           </Link>
+
         </div>
+
       </main>
     );
   }
 
-  /*
-   * Order status progress
-   */
-  const currentStatusIndex =
-    ORDER_STATUSES.indexOf(order.status);
+  /* =====================================================
+     ORDER STATUS
+  ===================================================== */
 
-  const progressWidth =
-    order.status === "CANCELLED"
-      ? 0
-      : currentStatusIndex <= 0
-      ? 0
-      : (currentStatusIndex /
-          (ORDER_STATUSES.length - 2)) *
-        100;
+  const currentStatusIndex =
+    ORDER_STATUSES.indexOf(
+      order.status
+    );
 
   return (
     <main className="min-h-screen bg-black text-white">
 
-      {/* ================= HEADER ================= */}
+      {/* Header */}
 
       <header className="border-b border-zinc-800">
+
         <div className="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
 
           <Link
@@ -256,13 +266,14 @@ export default function OrderDetailsPage() {
           </Link>
 
         </div>
+
       </header>
 
-      {/* ================= MAIN ================= */}
+      {/* Main */}
 
       <section className="max-w-6xl mx-auto px-6 py-12">
 
-        {/* ================= TITLE ================= */}
+        {/* Title */}
 
         <div className="mb-10">
 
@@ -280,7 +291,9 @@ export default function OrderDetailsPage() {
 
           <p className="text-zinc-500 mt-2">
             Placed on{" "}
-            {new Date(order.createdAt).toLocaleString(
+            {new Date(
+              order.createdAt
+            ).toLocaleString(
               "en-IN",
               {
                 day: "numeric",
@@ -294,7 +307,7 @@ export default function OrderDetailsPage() {
 
         </div>
 
-        {/* ================= ORDER STATUS ================= */}
+        {/* Order Status */}
 
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 mb-6">
 
@@ -302,7 +315,9 @@ export default function OrderDetailsPage() {
             Order Status
           </h2>
 
-          {order.status === "CANCELLED" ? (
+          {order.status ===
+          "CANCELLED" ? (
+
             <div className="mt-6">
 
               <div className="flex items-center gap-3">
@@ -312,6 +327,7 @@ export default function OrderDetailsPage() {
                 </div>
 
                 <div>
+
                   <p className="font-semibold text-red-400">
                     Order Cancelled
                   </p>
@@ -319,77 +335,87 @@ export default function OrderDetailsPage() {
                   <p className="text-sm text-zinc-500 mt-1">
                     This order has been cancelled.
                   </p>
+
                 </div>
 
               </div>
 
             </div>
-          ) : (
-            <div className="mt-8">
 
-              {/* Status circles */}
+          ) : (
+
+            <div className="mt-8">
 
               <div className="flex items-center">
 
-                {ORDER_STATUSES.slice(0, 5).map(
-                  (status, index) => {
+                {ORDER_STATUSES
+                  .slice(0, 5)
+                  .map(
+                    (
+                      status,
+                      index
+                    ) => {
 
-                    const isCompleted =
-                      currentStatusIndex >= index;
+                      const isCompleted =
+                        currentStatusIndex >=
+                        index;
 
-                    const isCurrent =
-                      order.status === status;
+                      const isCurrent =
+                        order.status ===
+                        status;
 
-                    return (
-                      <div
-                        key={status}
-                        className="flex items-center flex-1"
-                      >
+                      return (
+                        <div
+                          key={status}
+                          className="flex items-center flex-1"
+                        >
 
-                        <div className="flex flex-col items-center">
+                          <div className="flex flex-col items-center">
 
-                          <div
-                            className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border ${
-                              isCompleted || isCurrent
-                                ? "bg-white text-black border-white"
-                                : "bg-black text-zinc-600 border-zinc-700"
-                            }`}
-                          >
-                            {index + 1}
+                            <div
+                              className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border ${
+                                isCompleted ||
+                                isCurrent
+                                  ? "bg-white text-black border-white"
+                                  : "bg-black text-zinc-600 border-zinc-700"
+                              }`}
+                            >
+                              {index + 1}
+                            </div>
+
+                            <p
+                              className={`text-[10px] sm:text-xs mt-3 text-center whitespace-nowrap ${
+                                isCurrent
+                                  ? "text-white font-semibold"
+                                  : isCompleted
+                                  ? "text-zinc-300"
+                                  : "text-zinc-600"
+                              }`}
+                            >
+                              {status}
+                            </p>
+
                           </div>
 
-                          <p
-                            className={`text-[10px] sm:text-xs mt-3 text-center whitespace-nowrap ${
-                              isCurrent
-                                ? "text-white font-semibold"
-                                : isCompleted
-                                ? "text-zinc-300"
-                                : "text-zinc-600"
-                            }`}
-                          >
-                            {status}
-                          </p>
+                          {index < 4 && (
+
+                            <div
+                              className={`h-1 flex-1 mx-2 rounded-full ${
+                                currentStatusIndex >
+                                index
+                                  ? "bg-white"
+                                  : "bg-zinc-800"
+                              }`}
+                            />
+
+                          )}
 
                         </div>
-
-                        {index < 4 && (
-                          <div
-                            className={`h-1 flex-1 mx-2 rounded-full ${
-                              currentStatusIndex > index
-                                ? "bg-white"
-                                : "bg-zinc-800"
-                            }`}
-                          />
-                        )}
-
-                      </div>
-                    );
-                  }
-                )}
+                      );
+                    }
+                  )}
 
               </div>
-
-              {/* Current status */}
 
               <div className="mt-8 text-center">
 
@@ -400,11 +426,12 @@ export default function OrderDetailsPage() {
               </div>
 
             </div>
+
           )}
 
         </div>
 
-        {/* ================= CUSTOMER + SHIPPING ================= */}
+        {/* Customer + Shipping */}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
@@ -419,6 +446,7 @@ export default function OrderDetailsPage() {
             <div className="mt-6 space-y-4">
 
               <div>
+
                 <p className="text-sm text-zinc-500">
                   Name
                 </p>
@@ -426,9 +454,11 @@ export default function OrderDetailsPage() {
                 <p className="mt-1">
                   {order.customerName}
                 </p>
+
               </div>
 
               <div>
+
                 <p className="text-sm text-zinc-500">
                   Email
                 </p>
@@ -436,9 +466,11 @@ export default function OrderDetailsPage() {
                 <p className="mt-1 break-all">
                   {order.email}
                 </p>
+
               </div>
 
               <div>
+
                 <p className="text-sm text-zinc-500">
                   Phone
                 </p>
@@ -446,6 +478,7 @@ export default function OrderDetailsPage() {
                 <p className="mt-1">
                   {order.phone}
                 </p>
+
               </div>
 
             </div>
@@ -467,7 +500,8 @@ export default function OrderDetailsPage() {
               </p>
 
               <p>
-                {order.city}, {order.state}
+                {order.city},{" "}
+                {order.state}
               </p>
 
               <p>
@@ -480,7 +514,7 @@ export default function OrderDetailsPage() {
 
         </div>
 
-        {/* ================= PRODUCTS ================= */}
+        {/* Products */}
 
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 mt-6">
 
@@ -490,65 +524,66 @@ export default function OrderDetailsPage() {
 
           <div className="mt-6 space-y-5">
 
-            {order.items.map((item) => (
+            {order.items.map(
+              (item) => (
 
-              <div
-                key={item.id}
-                className="flex flex-col sm:flex-row sm:items-center gap-4 border-b border-zinc-800 pb-5 last:border-b-0 last:pb-0"
-              >
+                <div
+                  key={item.id}
+                  className="flex flex-col sm:flex-row sm:items-center gap-4 border-b border-zinc-800 pb-5 last:border-b-0 last:pb-0"
+                >
 
-                {/* Image */}
+                  <div className="w-20 h-20 bg-black rounded-xl overflow-hidden flex-shrink-0">
 
-                <div className="w-20 h-20 bg-black rounded-xl overflow-hidden flex-shrink-0">
+                    <img
+                      src={item.product.image}
+                      alt={item.product.name}
+                      className="w-full h-full object-contain p-2"
+                    />
 
-                  <img
-                    src={item.product.image}
-                    alt={item.product.name}
-                    className="w-full h-full object-contain p-2"
-                  />
+                  </div>
+
+                  <div className="flex-1">
+
+                    <h3 className="font-semibold">
+                      {item.product.name}
+                    </h3>
+
+                    <p className="text-sm text-zinc-500 mt-1">
+                      Quantity:{" "}
+                      {item.quantity}
+                    </p>
+
+                    <p className="text-sm text-zinc-500">
+                      Unit price: ₹
+                      {Number(
+                        item.price
+                      ).toFixed(2)}
+                    </p>
+
+                  </div>
+
+                  <div className="font-bold">
+
+                    ₹
+                    {(
+                      Number(
+                        item.price
+                      ) *
+                      item.quantity
+                    ).toFixed(2)}
+
+                  </div>
 
                 </div>
 
-                {/* Info */}
-
-                <div className="flex-1">
-
-                  <h3 className="font-semibold">
-                    {item.product.name}
-                  </h3>
-
-                  <p className="text-sm text-zinc-500 mt-1">
-                    Quantity: {item.quantity}
-                  </p>
-
-                  <p className="text-sm text-zinc-500">
-                    Unit price: ₹
-                    {Number(item.price).toFixed(2)}
-                  </p>
-
-                </div>
-
-                {/* Total */}
-
-                <div className="font-bold">
-
-                  ₹
-                  {(
-                    Number(item.price) *
-                    item.quantity
-                  ).toFixed(2)}
-
-                </div>
-
-              </div>
-
-            ))}
+              )
+            )}
 
           </div>
 
         </div>
 
-        {/* ================= PAYMENT + SUMMARY ================= */}
+        {/* Payment + Summary */}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
 
@@ -569,7 +604,8 @@ export default function OrderDetailsPage() {
                 </span>
 
                 <span className="font-semibold">
-                  {order.paymentMethod || "COD"}
+                  {order.paymentMethod ||
+                    "COD"}
                 </span>
 
               </div>
@@ -651,7 +687,7 @@ export default function OrderDetailsPage() {
 
         </div>
 
-        {/* ================= BOTTOM BUTTONS ================= */}
+        {/* Buttons */}
 
         <div className="mt-8 flex flex-col sm:flex-row gap-4">
 
