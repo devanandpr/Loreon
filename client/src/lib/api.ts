@@ -60,8 +60,7 @@ export async function registerUser(
 
   if (!response.ok) {
     throw new Error(
-      data.message ||
-        "Failed to register user"
+      data.message || "Failed to register user"
     );
   }
 
@@ -95,8 +94,7 @@ export async function loginUser(
 
   if (!response.ok) {
     throw new Error(
-      data.message ||
-        "Failed to login"
+      data.message || "Failed to login"
     );
   }
 
@@ -107,6 +105,8 @@ export async function loginUser(
 /* =====================================================
    ORDERS
 ===================================================== */
+
+/* ---------------- CREATE ORDER ---------------- */
 
 export async function createOrder(
   orderData: {
@@ -140,7 +140,6 @@ export async function createOrder(
 
       headers: {
         "Content-Type": "application/json",
-
         Authorization: `Bearer ${token}`,
       },
 
@@ -152,8 +151,38 @@ export async function createOrder(
 
   if (!response.ok) {
     throw new Error(
-      data.message ||
-        "Failed to create order"
+      data.message || "Failed to create order"
+    );
+  }
+
+  return data;
+}
+
+
+/* ---------------- GET ORDER ---------------- */
+
+export async function getOrder(
+  id: string,
+  token?: string
+) {
+  const response = await fetch(
+    `${API_URL}/orders/${id}`,
+    {
+      method: "GET",
+
+      headers: token
+        ? {
+            Authorization: `Bearer ${token}`,
+          }
+        : undefined,
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      data.message || "Failed to fetch order"
     );
   }
 
